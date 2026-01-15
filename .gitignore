@@ -1,0 +1,16 @@
+# Build output
+bin/
+obj/
+
+# VS Code
+.vscode/
+
+# Visual Studio
+.vs/
+
+# MonoGame / tooling cache
+.mono/
+
+# OS junk
+Thumbs.db
+.DS_Store
