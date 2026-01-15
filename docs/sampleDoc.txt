@@ -1,1 +1,26 @@
 sampleDoc
+
+on the 15th of January,
+year of Our Lord, 2026,
+I - Josephine Turing Versoza - began the 3rd iteration,
+and official development, 
+of "Until We Fall"
+
+------------------------------------------------------------
+BUILD NOTES
+
+Goal of Iteration 3:
+- rebuild cleanly from scratch
+- document everything properly
+- prepare as a portfolio/college project
+
+Phase 0 completed:
+- created new repo + folder structure
+- added .gitignore
+- pushed to GitHub
+- verified bin/obj are not tracked
+
+Next:
+- Phase 1: implement camera movement + zoom
+- add debug overlay (FPS, mouse tile coords)
+------------------------------------------------------------
