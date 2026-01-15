@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace UWF_rebuild
+namespace UntilWeFall
 {
     public static class Program
     {
