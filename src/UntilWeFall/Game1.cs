@@ -1,78 +1,36 @@
-﻿using System.Data;
-using Microsoft.Xna.Framework;
+﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
+using System.Globalization;
+using System.Runtime.InteropServices;
 
 using System;
 
 namespace UntilWeFall
-{
-	#region CAMERA 2D
-	public class Camera2D
-	{
-		public Vector2 position {get; private set; } = Vector2.Zero;
-		public float Zoom {get; private set;} = 1f;
-		public float Rotation {get; private set;} = 0f;
-		public int ViewportWidth {get; private set;}
-		public int ViewportHeight {get; private set;}
-		public float minZoom {get; set;} = 0.25f;
-		public float maxZoom {get; set;} = 4.0f;
-
-		public Camera2D(int viewportWidth, int viewportHeight)
-		{
-			ViewportHeight = viewportHeight;
-			ViewportWidth = viewportWidth;
-		}
-
-		public void SetViewportSize(int width, int height)
-		{
-			ViewportWidth = width;
-			ViewportHeight = height;
-		}
-
-		public void Move(Vector2 amount)
-		{
-			position += amount;
-		}
-		
-		public void AddZoom (float amount)
-		{
-			Zoom += amount;
-			Zoom = MathHelper.Clamp(Zoom, minZoom, maxZoom);
-		}
-
-		public Vector2 GetScreenCenter()  // CENTER OF SCREEN (pixels)
-			=> new Vector2(ViewportWidth * 0.5f, ViewportHeight * 0.5f);
-
-		public Matrix GetViewMatrix() // basically the player's POV, lol
-		{
-			return
-				Matrix.CreateTranslation(new Vector3(-position, 0f)) * // "move around"
-				Matrix.CreateRotationZ(Rotation) * // spin view
-				Matrix.CreateScale(Zoom, Zoom, 1f) *  // zoom "in and out"
-				Matrix.CreateTranslation(new Vector3(GetScreenCenter(), 0f)); //centering
-		}
-
-		public Vector2 ScreenToWorld (Vector2 screenPosition) // when I need to converted a screen coordinate into world coordinates
-		{
-			Matrix inverse = Matrix.Invert(GetViewMatrix());
-			return Vector2.Transform(screenPosition, inverse);
-		}
-	}
-    	#endregion
+{	
 	public class Game1 : Game
 	{
+		private static readonly Color window_bg_Color = new Color(7, 7, 7);
 		private GraphicsDeviceManager _graphics;
 		private SpriteBatch _spriteBatch;
 
-		private Camera2D _camera;
-		private float _cameraSpeed = 800f;
-		private MouseState _prevMouse;
+		#region CAMERA 2D
+			private Camera2D _camera;
+			private MouseState _mousePrev;
+
+			private float _panSpeed = 800f;
+			private float _zoomStep = 0.10f;
+
+			private Matrix _viewMatrix;
+			private Vector2 mouseWorld;
+		#endregion
+
 		private Texture2D _pixel;
 
 		public Game1()
 		{
 			_graphics = new GraphicsDeviceManager(this);
+
 			Content.RootDirectory = "Content";
 			IsMouseVisible = true;
 		}
@@ -80,6 +38,14 @@ namespace UntilWeFall
 		protected override void Initialize()
 		{
 			// TODO: Add your initialization logic here
+			_graphics.PreferredBackBufferWidth = GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Width;
+            		_graphics.PreferredBackBufferHeight = GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Height;
+            		_graphics.SynchronizeWithVerticalRetrace = true;
+			_graphics.IsFullScreen = true; // FALSE for windowed...
+			_graphics.HardwareModeSwitch = true;
+
+            		_graphics.ApplyChanges();
+
 			_camera = new Camera2D(GraphicsDevice.Viewport.Width, GraphicsDevice.Viewport.Height);
 
 			base.Initialize();
@@ -87,8 +53,6 @@ namespace UntilWeFall
 
 		protected override void LoadContent()
 		{
-			_spriteBatch = new SpriteBatch(GraphicsDevice);
-
 			// TODO: use this.Content to load your game content here
 			_spriteBatch = new SpriteBatch(GraphicsDevice);
 
@@ -98,67 +62,102 @@ namespace UntilWeFall
 
 		protected override void Update(GameTime gameTime)
 		{
-			if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape))
-			Exit();
+			if (Keyboard.GetState().IsKeyDown(Keys.Escape)) {
+				Exit();
+			}
 
 			// TODO: Add your update logic here
 			float dt = (float)gameTime.ElapsedGameTime.TotalSeconds;
 
-			var keyboard = Keyboard.GetState();
-
-			Vector2 moveDir = Vector2.Zero;
-
-			if (keyboard.IsKeyDown(Keys.W) || keyboard.IsKeyDown(Keys.Up))
-				moveDir.Y -= 1;
-
-			if (keyboard.IsKeyDown(Keys.S) || keyboard.IsKeyDown(Keys.Down))
-				moveDir.Y += 1;
-
-			if (keyboard.IsKeyDown(Keys.A) || keyboard.IsKeyDown(Keys.Left))
-				moveDir.X -= 1;
-
-			if (keyboard.IsKeyDown(Keys.D) || keyboard.IsKeyDown(Keys.Right))
-				moveDir.X += 1;
-			
-			if (moveDir != Vector2.Zero)
-    				moveDir.Normalize();
-
-			float zoomAdjustedSpeed = _cameraSpeed / _camera.Zoom;
-
-			_camera.Move(moveDir * zoomAdjustedSpeed * dt);
-
+			var kb = Keyboard.GetState();
 			var mouse = Mouse.GetState();
 
-			int scrollDelta = mouse.ScrollWheelValue - _prevMouse.ScrollWheelValue;
+			_camera.SetViewportSize(GraphicsDevice.Viewport.Width, GraphicsDevice.Viewport.Height);
 
-			if (scrollDelta != 0)
-			{
-				float zoomStep = 0.1f;
-				float direction = Math.Sign(scrollDelta);
+			Vector2 move = Vector2.Zero;
+			// camera PAN
+			if (kb.IsKeyDown(Keys.W) || kb.IsKeyDown(Keys.Up))
+				move.Y -= 1;
 
-				_camera.AddZoom(direction * zoomStep);
+			if (kb.IsKeyDown(Keys.S) || kb.IsKeyDown(Keys.Down))
+				move.Y += 1;
+
+			if (kb.IsKeyDown(Keys.A) || kb.IsKeyDown(Keys.Left))
+				move.X -= 1;
+
+			if (kb.IsKeyDown(Keys.D) || kb.IsKeyDown(Keys.Right))
+				move.X += 1;
+			
+			if (move != Vector2.Zero) {
+    				move.Normalize();
+				float speed = _panSpeed / _camera.Zoom; // camera movement slows when zoomed in, relative to how close you're zoomed in.
+				_camera.Pan( move * speed * dt);
 			}
 
-			_prevMouse = mouse;
+			int wheelDelta = mouse.ScrollWheelValue - _mousePrev.ScrollWheelValue;
+			if (wheelDelta != 0)
+			{
+				int notches = wheelDelta / 120; // typically ±1
+				float zoomFactor = 1f;
+
+				if (notches > 0) {
+					for (int i = 0; i < notches; i++) {
+						zoomFactor *= (1f + _zoomStep);
+					}
+				}
+				else {
+					for (int i = 0; i < -notches; i++) {
+						zoomFactor *= (1f - _zoomStep);
+					}
+				}
+
+				_camera.ZoomAtScreenPoint(
+					new Vector2(mouse.X, mouse.Y), 
+					zoomFactor);
+			}
+
+
+			_mousePrev = mouse;
+
+			_viewMatrix = _camera.GetViewMatrix();
+			mouseWorld = _camera.ScreenToWorld(new Vector2(mouse.X, mouse.Y));
 
 			base.Update(gameTime);
 		}
 
 		protected override void Draw(GameTime gameTime)
 		{
-			GraphicsDevice.Clear(Color.CornflowerBlue);
+			GraphicsDevice.Clear(window_bg_Color);
 
 			// TODO: Add your drawing code here
-			_spriteBatch.Begin(transformMatrix: _camera.GetViewMatrix(), samplerState: SamplerState.PointClamp);
+#region Draw WORLD
+// for drawing in-world elements
+			_spriteBatch.Begin(transformMatrix: _viewMatrix, samplerState: SamplerState.PointClamp);
 
-			// Draw a simple cross at world origin so you can see movement
-			DrawLine(new Vector2(-200, 0), new Vector2(200, 0), Color.Red, 3);
-			DrawLine(new Vector2(0, -200), new Vector2(0, 200), Color.Red, 3);
+				int tileSize = 16; // or whatever
+				Vector2 snapped = new Vector2(
+					(int)(mouseWorld.X / tileSize) * tileSize,
+					(int)(mouseWorld.Y / tileSize) * tileSize
+				);
 
-			// Draw a rectangle "tile" at world (100, 100)
-			_spriteBatch.Draw(_pixel, new Rectangle(100, 100, 64, 64), Color.ForestGreen);
+				_spriteBatch.Draw(
+					_pixel, 
+					new Rectangle((int)snapped.X, (int)snapped.Y, tileSize, tileSize), 
+					Color.Yellow * 0.35f
+				);
+
+				DrawLine(snapped, snapped + new Vector2(tileSize, 0), Color.Yellow, 2);
+				DrawLine(snapped, snapped + new Vector2(0, tileSize), Color.Yellow, 2);
 
 			_spriteBatch.End();
+		#endregion
+
+#region Draw UI
+// for drawing GUI
+			_spriteBatch.Begin(samplerState: SamplerState.PointClamp);
+
+			_spriteBatch.End();
+		#endregion
 
 			base.Draw(gameTime);
 		}
@@ -178,6 +177,26 @@ namespace UntilWeFall
 				SpriteEffects.None,
 				0
 			);
+		}
+
+		Color convertToRGBA(string hexString) {
+			// change HEX color to RGBA
+			if (hexString == null) {
+				return Color.Black;
+			}
+
+			// replace # occurences
+			if (hexString.IndexOf('#') != -1) {
+				hexString = hexString.Replace("#", "");
+			}
+
+			int r, g, b;
+
+			r = int.Parse(hexString.Substring(0, 2), NumberStyles.AllowHexSpecifier);
+			g = int.Parse(hexString.Substring(2, 2), NumberStyles.AllowHexSpecifier);
+			b = int.Parse(hexString.Substring(4, 2), NumberStyles.AllowHexSpecifier);
+
+			return new Color(r, g, b);
 		}
 
 	}
