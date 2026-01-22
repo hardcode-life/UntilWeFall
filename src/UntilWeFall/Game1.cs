@@ -1,10 +1,11 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
-using System.Globalization;
+//using System.Globalization;
 using System.Runtime.InteropServices;
 
 using System;
+using System.Collections.Generic;
 
 namespace UntilWeFall
 {	
@@ -13,6 +14,8 @@ namespace UntilWeFall
 		private static readonly Color window_bg_Color = new Color(7, 7, 7);
 		private GraphicsDeviceManager _graphics;
 		private SpriteBatch _spriteBatch;
+
+		Dictionary<string, SpriteFont> fonts = new Dictionary<string, SpriteFont>();
 
 		#region CAMERA 2D
 			private Camera2D _camera;
@@ -23,9 +26,16 @@ namespace UntilWeFall
 
 			private Matrix _viewMatrix;
 			private Vector2 mouseWorld;
-		#endregion
+			#endregion CAMERA 2D
 
-		private Texture2D _pixel;
+		#region SEED INPUT
+			private string _seedInput = "";
+			private int _earthSeed;
+			private int _skySeed;
+			private KeyboardState _kbPrev;
+			#endregion SEED INPUT
+
+		private Texture2D _pixel; // temporary
 
 		public Game1()
 		{
@@ -48,7 +58,22 @@ namespace UntilWeFall
 
 			_camera = new Camera2D(GraphicsDevice.Viewport.Width, GraphicsDevice.Viewport.Height);
 
+			Window.TextInput += OnTextInput;
+
 			base.Initialize();
+		}
+
+		private void OnTextInput(object sender, TextInputEventArgs e)
+		{
+			char c = e.Character;
+
+			// ignore control characters
+			if (char.IsControl(c)) { return; }
+
+			if (char.IsLetterOrDigit(c) || c == ' ' || c == '-' || c == '_')
+			{
+				_seedInput += c;
+			}
 		}
 
 		protected override void LoadContent()
@@ -58,6 +83,8 @@ namespace UntilWeFall
 
 			_pixel = new Texture2D(GraphicsDevice, 1, 1);
 			_pixel.SetData(new[] { Color.White });
+
+			fonts["8"] = Content.Load<SpriteFont>("font/rs_12");
 		}
 
 		protected override void Update(GameTime gameTime)
@@ -72,7 +99,12 @@ namespace UntilWeFall
 			var kb = Keyboard.GetState();
 			var mouse = Mouse.GetState();
 
-			_camera.SetViewportSize(GraphicsDevice.Viewport.Width, GraphicsDevice.Viewport.Height);
+			int w = GraphicsDevice.Viewport.Width;
+			int h = GraphicsDevice.Viewport.Height;
+			if (w != _camera.ViewportWidth || h != _camera.ViewportHeight)
+			{
+				_camera.SetViewportSize(w, h);
+			}
 
 			Vector2 move = Vector2.Zero;
 			// camera PAN
@@ -116,11 +148,26 @@ namespace UntilWeFall
 					zoomFactor);
 			}
 
-
 			_mousePrev = mouse;
 
 			_viewMatrix = _camera.GetViewMatrix();
 			mouseWorld = _camera.ScreenToWorld(new Vector2(mouse.X, mouse.Y));
+
+			// Backspace
+			if (kb.IsKeyDown(Keys.Back) && !_kbPrev.IsKeyDown(Keys.Back))
+			{
+				if (_seedInput.Length > 0) {
+					_seedInput = _seedInput[..^1];
+				}
+			}
+
+			// Enter = commit seed
+			if (kb.IsKeyDown(Keys.Enter) && !_kbPrev.IsKeyDown(Keys.Enter))
+			{
+				SeedGenerator.Derive(_seedInput, out _earthSeed, out _skySeed);
+			}
+
+			_kbPrev = kb;
 
 			base.Update(gameTime);
 		}
@@ -130,8 +177,8 @@ namespace UntilWeFall
 			GraphicsDevice.Clear(window_bg_Color);
 
 			// TODO: Add your drawing code here
-#region Draw WORLD
-// for drawing in-world elements
+		#region Draw WORLD
+			// for drawing in-world elements
 			_spriteBatch.Begin(transformMatrix: _viewMatrix, samplerState: SamplerState.PointClamp);
 
 				int tileSize = 16; // or whatever
@@ -150,14 +197,19 @@ namespace UntilWeFall
 				DrawLine(snapped, snapped + new Vector2(0, tileSize), Color.Yellow, 2);
 
 			_spriteBatch.End();
-		#endregion
+			#endregion
 
-#region Draw UI
-// for drawing GUI
+		#region Draw UI
+			// for drawing GUI
 			_spriteBatch.Begin(samplerState: SamplerState.PointClamp);
 
+			_spriteBatch.DrawString(fonts["8"], $"Seed input: {_seedInput}", new Vector2(20, 20), Color.White);
+			_spriteBatch.DrawString(fonts["8"], $"EarthSeed: {_earthSeed}", new Vector2(20, 50), Color.White);
+			_spriteBatch.DrawString(fonts["8"], $"SkySeed: {_skySeed}", new Vector2(20, 80), Color.White);
+
+
 			_spriteBatch.End();
-		#endregion
+			#endregion
 
 			base.Draw(gameTime);
 		}
@@ -179,6 +231,7 @@ namespace UntilWeFall
 			);
 		}
 
+		/*
 		Color convertToRGBA(string hexString) {
 			// change HEX color to RGBA
 			if (hexString == null) {
@@ -198,6 +251,6 @@ namespace UntilWeFall
 
 			return new Color(r, g, b);
 		}
-
+		*/
 	}
 }

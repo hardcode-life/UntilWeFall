@@ -1,0 +1,10 @@
+DOUBLE-CLICK THE NEW SPRITEFONT!!! 
+
+
+
+And type at
+
+	<FontName> . . .</FontName>
+	
+the name of the font you're trying 
+to apply to the SPRITEFONT.
