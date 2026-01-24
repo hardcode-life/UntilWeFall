@@ -36,9 +36,10 @@ namespace UntilWeFall
 			#endregion SEED INPUT
 
 		#region WORLD PREVIEW
-			private const int PreviewW = 16; // width
-			private const int PreviewH = 16; // height
+			private const int PreviewW = 64; // width
+			private const int PreviewH = 64; // height
 			private Point _spawnTile = new Point(0, 0);
+			private int[,] _previewDigits = new int[PreviewW, PreviewH];
 			#endregion
 
 		private Texture2D _pixel; // temporary
@@ -171,6 +172,7 @@ namespace UntilWeFall
 			if (kb.IsKeyDown(Keys.Enter) && !_kbPrev.IsKeyDown(Keys.Enter))
 			{
 				SeedGenerator.Derive(_seedInput, out _earthSeed, out _skySeed);
+				RegenerateSpawnPreview();
 			}
 
 			_kbPrev = kb;
@@ -213,6 +215,45 @@ namespace UntilWeFall
 			_spriteBatch.DrawString(fonts["8"], $"EarthSeed: {_earthSeed}", new Vector2(20, 50), Color.White);
 			_spriteBatch.DrawString(fonts["8"], $"SkySeed: {_skySeed}", new Vector2(20, 80), Color.White);
 
+			_spriteBatch.End();
+			#endregion
+
+		#region MAP PREVIEW
+			_spriteBatch.Begin(samplerState: SamplerState.PointClamp);
+
+			Vector2 origin = new Vector2(20, 120);
+			int cellW = 14;
+			int cellH = 18;
+
+			Color textColor;
+			int digit;
+
+			for (int y = 0; y < PreviewH; y++)
+			{
+				for (int x = 0; x < PreviewW; x++)
+				{
+					digit = _previewDigits[x, y];
+					if (digit == 0)
+					{
+						textColor = Color.Blue;
+					}
+					else if (digit == 1)
+					{
+						textColor = Color.SkyBlue;
+					}
+					else
+					{
+						textColor = Color.SandyBrown;
+					}
+
+					_spriteBatch.DrawString(
+						fonts["8"],
+						_previewDigits[x, y].ToString(),
+						origin + new Vector2(x * cellW, y * cellH),
+						textColor
+					);
+				}
+			}
 
 			_spriteBatch.End();
 			#endregion
@@ -258,5 +299,48 @@ namespace UntilWeFall
 			return new Color(r, g, b);
 		}
 		*/
+
+		private void RegenerateSpawnPreview()
+		{
+			int w = PreviewW;
+			int h = PreviewH;
+
+			float scale = 200f;
+			int octaves = 5;
+			float persistence = 0.6f;
+			float lacunarity = 2f;
+
+			SimplexNoise.view_offset_x = _spawnTile.X;
+			SimplexNoise.view_offset_y = _spawnTile.Y;
+
+			float[,] raw = SimplexNoise.GenerateNoiseMap(
+				w, h,
+				_earthSeed,
+				scale,
+				octaves,
+				persistence,
+				lacunarity,
+				_spawnTile.X,
+				_spawnTile.Y);
+
+			float[,] smooth = SimplexNoise.SmoothNoiseMap(raw, w, h, kernelSize: 3);
+
+			for (int y = 0; y < h; y++)
+			{
+				for (int x = 0; x < w; x++)
+				{
+					//float n01 = smooth[x, y] / 100f;
+					float n01 = smooth[x, y];
+
+					n01 = SimplexNoise.SmoothStep(0f, 1f, n01);
+
+					int digit = (int)(n01 * 9.999f);
+					if (digit < 0) digit = 0;
+					if (digit > 9) digit = 9;
+
+					_previewDigits[x, y] = digit;
+				}
+			}
+		}
 	}
 }
