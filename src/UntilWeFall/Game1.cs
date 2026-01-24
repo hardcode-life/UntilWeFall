@@ -35,6 +35,12 @@ namespace UntilWeFall
 			private KeyboardState _kbPrev;
 			#endregion SEED INPUT
 
+		#region WORLD PREVIEW
+			private const int PreviewW = 16; // width
+			private const int PreviewH = 16; // height
+			private Point _spawnTile = new Point(0, 0);
+			#endregion
+
 		private Texture2D _pixel; // temporary
 
 		public Game1()
