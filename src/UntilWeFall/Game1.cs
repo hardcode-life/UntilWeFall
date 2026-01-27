@@ -40,6 +40,8 @@ namespace UntilWeFall
 			private const int PreviewH = 64; // height
 			private Point _spawnTile = new Point(0, 0);
 			private int[,] _previewDigits = new int[PreviewW, PreviewH];
+			private string _previewCorner = "";
+
 			#endregion
 
 		private Texture2D _pixel; // temporary
@@ -219,43 +221,7 @@ namespace UntilWeFall
 			#endregion
 
 		#region MAP PREVIEW
-			_spriteBatch.Begin(samplerState: SamplerState.PointClamp);
-
-			Vector2 origin = new Vector2(20, 120);
-			int cellW = 14;
-			int cellH = 18;
-
-			Color textColor;
-			int digit;
-
-			for (int y = 0; y < PreviewH; y++)
-			{
-				for (int x = 0; x < PreviewW; x++)
-				{
-					digit = _previewDigits[x, y];
-					if (digit == 0)
-					{
-						textColor = Color.Blue;
-					}
-					else if (digit == 1)
-					{
-						textColor = Color.SkyBlue;
-					}
-					else
-					{
-						textColor = Color.SandyBrown;
-					}
-
-					_spriteBatch.DrawString(
-						fonts["8"],
-						_previewDigits[x, y].ToString(),
-						origin + new Vector2(x * cellW, y * cellH),
-						textColor
-					);
-				}
-			}
-
-			_spriteBatch.End();
+			PreviewMap(_spriteBatch);
 			#endregion
 
 			base.Draw(gameTime);
@@ -300,39 +266,139 @@ namespace UntilWeFall
 		}
 		*/
 
+		private void PreviewMap(SpriteBatch sb)
+		{
+			sb.Begin(samplerState: SamplerState.PointClamp);
+			
+			// space between characters
+			int cellW = 14;
+			int cellH = 18;
+			
+			// preview map position
+			Vector2 origin = new Vector2(_graphics.PreferredBackBufferWidth/2, 18);
+
+			for (int y = 0; y < PreviewH; y++)
+			{
+				for (int x = 0; x < PreviewW; x++)
+				{
+					int digit = _previewDigits[x, y];
+
+					Color textColor;
+					string _text = "";
+
+					if (digit <= 1)
+					{
+						textColor = Color.Blue;
+						_text = "#";
+					}
+					else if (digit == 2)
+					{
+						textColor = Color.SkyBlue;
+						_text = "%";
+					}
+					else if (digit == 3)
+					{
+						textColor = Color.SandyBrown;
+						_text = "$";
+					}
+					else
+					{
+						textColor = Color.DarkGreen;
+						_text = "&";
+					}
+
+					sb.DrawString(
+						fonts["8"],
+						_text,
+						origin + new Vector2(x * cellW, y * cellH),
+						textColor * (.75f - ((_previewDigits[x, y] * 0.1f) - 0.1f))
+					);
+
+				}
+			}
+			
+			sb.DrawString(fonts["8"], $"Corner: {_previewCorner}", new Vector2(20, 110), Color.White);
+
+			sb.End();
+		}
+
 		private void RegenerateSpawnPreview()
 		{
 			int w = PreviewW;
 			int h = PreviewH;
+			int previewW = w;
+			int previewH = h;
+
+			// Finite world dimensions (even if you don't fully generate it yet)
+			int worldW = 512;
+			int worldH = 512;
+
+			// Choose which corner you're previewing
+    			string corner = "NE"; // later: randomize by seed, or let player pick
+
+			int startX, startY;
+
+			// Pick which corner to show
+			switch (corner)
+			{
+				case "NW": 
+					startX = 0; 
+					startY = 0; 
+					break;
+				case "NE": 
+					startX = Math.Max(0, worldW - previewW); 
+					startY = 0; 
+					break;
+				case "SW": 
+					startX = 0; 
+					startY = Math.Max(0, worldH - previewH); 
+					break;
+				case "SE": 
+					startX = Math.Max(0, worldW - previewW); 
+					startY = Math.Max(0, worldH - previewH); 
+					break;
+				default:   
+					startX = 0; 
+					startY = 0; 
+					break;
+			}
+			_previewCorner = corner;
 
 			float scale = 200f;
 			int octaves = 5;
 			float persistence = 0.6f;
 			float lacunarity = 2f;
 
-			SimplexNoise.view_offset_x = _spawnTile.X;
-			SimplexNoise.view_offset_y = _spawnTile.Y;
+			//SimplexNoise.view_offset_x = _spawnTile.X;
+			//SimplexNoise.view_offset_y = _spawnTile.Y;
 
 			float[,] raw = SimplexNoise.GenerateNoiseMap(
-				w, h,
+				previewW, previewH,
 				_earthSeed,
 				scale,
 				octaves,
 				persistence,
 				lacunarity,
-				_spawnTile.X,
-				_spawnTile.Y);
+				startX,
+				startY);
 
-			float[,] smooth = SimplexNoise.SmoothNoiseMap(raw, w, h, kernelSize: 3);
+			float[,] smooth = SimplexNoise.SmoothNoiseMap(raw, previewW, previewH, kernelSize: 3);
 
-			for (int y = 0; y < h; y++)
+			//BuildPreviewTexture(GraphicsDevice, raw, 16, 32, "TL");
+
+			for (int y = 0; y < previewH; y++)
 			{
-				for (int x = 0; x < w; x++)
+				for (int x = 0; x < previewW; x++)
 				{
-					//float n01 = smooth[x, y] / 100f;
-					float n01 = smooth[x, y];
+					int wx = startX + x;
+					int wy = startY + y;
 
+					float n01 = smooth[x, y];
 					n01 = SimplexNoise.SmoothStep(0f, 1f, n01);
+
+					float mask = IslandMask(wx, wy, worldW, worldH); // 0..1
+					n01 = MathHelper.Clamp(n01 * mask, 0f, 1f);
+					//n01 = MathHelper.Clamp((n01 * mask) - (1f - mask) * 0.25f, 0f, 1f);
 
 					int digit = (int)(n01 * 9.999f);
 					if (digit < 0) digit = 0;
@@ -341,6 +407,32 @@ namespace UntilWeFall
 					_previewDigits[x, y] = digit;
 				}
 			}
+		}
+
+		private float IslandMask(int x, int y, int w, int h)
+		{
+			// distance to nearest edge in tiles
+			int distLeft = x;
+			int distRight = (w - 1) - x;
+			int distTop = y;
+			int distBottom = (h - 1) - y;
+
+			int distToEdge = Math.Min(Math.Min(distLeft, distRight), Math.Min(distTop, distBottom));
+
+			// how wide the coastal falloff zone is (in tiles)
+			float coast = 30f;
+			/*
+			30f = thin coasts
+			45f = balanced
+			60 = bigger beachs/ lowlands
+			*/
+
+			float t = MathHelper.Clamp(distToEdge / coast, 0f, 1f);
+						
+			t = t * t * (3f - 2f * t); // smoothstep for nicer curve
+			t = MathF.Pow(t, 0.7f); // bias toward land
+
+			return t; // 0 at edges -> 1 deeper inland
 		}
 	}
 }
