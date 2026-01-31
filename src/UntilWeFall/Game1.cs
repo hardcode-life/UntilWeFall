@@ -38,19 +38,9 @@ namespace UntilWeFall
 			private int _earthSeed;
 			private int _skySeed;
 			private KeyboardState _kbPrev;
-			private bool _seeded = false;	
 			#endregion SEED INPUT
-
-		#region WORLD PREVIEW
-			private const int PreviewW = 64; // width
-			private const int PreviewH = 64; // height
-			private Point _spawnTile = new Point(0, 0);
-			private int[,] _previewDigits = new int[PreviewW, PreviewH];
-			private string _previewCorner = "";
-			private Point _previewStart = Point.Zero;
-			private Random _rng;
-			#endregion WORLD PREVIEW
-
+		
+		private MapPreview _mapPreview = new MapPreview();
 		private Texture2D _pixel; // temporary
 
 		public Game1()
@@ -109,6 +99,12 @@ namespace UntilWeFall
 
 			fonts["8"] = Content.Load<SpriteFont>("font/rs_12");
 			mainLogo = Content.Load<Texture2D>("sprites/main_logo");
+
+			_mapPreview.SetPreview(new Vector2(
+				(GraphicsDevice.Viewport.Width / 2) + 
+				((mainLogo.Width / 3) / 2) + 72,
+				80
+			));
 		}
 
 		protected override void Update(GameTime gameTime)
@@ -189,7 +185,16 @@ namespace UntilWeFall
 			if (kb.IsKeyDown(Keys.Enter) && !_kbPrev.IsKeyDown(Keys.Enter))
 			{
 				SeedGenerator.Derive(_seedInput, out _earthSeed, out _skySeed);
-				RegenerateSpawnPreview();
+				_mapPreview.Regenerate(
+					earthSeed: _earthSeed,
+					skySeed: _skySeed,
+					worldW: 512,
+					worldH: 512,
+					minLandRatio: 0.45f,
+					maxAttempts: 12,
+					coast: 30f,
+					landBiasPow: 0.7f
+				);
 			}
 
 			_kbPrev = kb;
@@ -256,7 +261,7 @@ namespace UntilWeFall
 			_spriteBatch.End();
 
 		#region MAP PREVIEW
-			PreviewMap(_spriteBatch);
+			_mapPreview.Draw(_spriteBatch, fonts["8"]);
 		#endregion <-----MAP PREVIEW---<<<-
 
 			base.Draw(gameTime);
@@ -317,211 +322,6 @@ namespace UntilWeFall
 			return new Color(r, g, b, a);
 		}
 
-		private static int HashSeeds(int a, int b)
-		{
-			// takes two integers (a, b) and mixes them into a new integer that's nice and random.
-			unchecked
-			{
-				int h = 17;
-				h = h * 31 + a;
-				h = h * 31 + b;
-				return h;
-			}
-		}
-
-
-		private void PreviewMap(SpriteBatch sb)
-		{
-			sb.Begin(samplerState: SamplerState.PointClamp);
-			
-			// space between characters
-			int cellW = 14;
-			int cellH = 18;
-			
-			// preview map position
-			Vector2 origin = new Vector2(
-				(GraphicsDevice.Viewport.Width / 2) + ((mainLogo.Width / 3) / 2) + 72, 
-				80);
-
-			for (int y = 0; y < PreviewH; y++)
-			{
-				for (int x = 0; x < PreviewW; x++)
-				{
-					int digit = _previewDigits[x, y];
-
-					Color textColor;
-					string _text;
-					if (_seeded) {
-						if (digit <= 1) // sea
-						{
-							textColor = Color.Blue * 0.75f;
-							
-							int hash = (x * 73856093) ^ (y * 19349663) ^ _earthSeed; 
-								//73856093 and 19349663 are just large prime numbers
-							int n = Math.Abs(hash) % 4;
-
-							_text = n switch
-							{
-								0 => ".",
-								1 => ",",
-								2 => "'",
-								_ => "+"
-							};
-						}
-						else if (digit == 2) // reef
-						{
-							textColor = Color.SkyBlue * 0.75f;
-							_text = "%";
-						}
-						else if (digit == 3) // coastline
-						{
-							textColor = Color.SandyBrown;
-							_text = "$";
-						}
-						else // inland
-						{
-							textColor = Color.DarkGreen;
-							_text = "#";
-						}
-					}
-					else
-					{
-						textColor = Color.DarkGray;
-						_text = "#";
-					}
-
-					float shade = MathHelper.Clamp(
-						0.25f + (_previewDigits[x, y] * 0.07f),
-						0.25f,
-						1f
-					);
-					sb.DrawString(
-						fonts["8"],
-						_text,
-						origin + new Vector2(x * cellW, y * cellH),
-						textColor * shade
-					);
-				}
-			}
-
-			if (_seeded)
-			{
-				int sx = _spawnTile.X - _previewStart.X;
-				int sy = _spawnTile.Y - _previewStart.Y;
-
-				if (sx >= 0 && sx < PreviewW && sy >= 0 && sy < PreviewH)
-				{
-					sb.DrawString(
-						fonts["8"],
-						"@",
-						origin + new Vector2(sx * cellW, sy * cellH),
-						Color.Yellow
-					);
-				}
-			}
-
-
-		
-			sb.DrawString(fonts["8"], $"Preview: {_previewCorner}", 
-				new Vector2(
-					(GraphicsDevice.Viewport.Width / 2) + ((mainLogo.Width / 3) / 2), 
-					80), 
-				Color.White);
-
-			sb.End();
-		}
-
-		private void RegenerateSpawnPreview()
-		{
-			_seeded = true;
-
-			int w = PreviewW;
-			int h = PreviewH;
-
-			int previewW = w;
-			int previewH = h;
-
-			// Finite world dimensions (even if you don't fully generate it yet)
-			int worldW = 512;
-			int worldH = 512;
-
-			_rng ??= new Random(HashSeeds(_earthSeed, _skySeed)); // checks null with "??=" . So that when _rng turns null, it'll just assign the HashSeed anyway
-
-			const float minLand =0.45f; // 45%
-			const int maxAttempts = 12;
-
-			for (int attempt = 0; attempt < maxAttempts; attempt++)
-			{
-				Point start = PickEdgeWindowStart(worldW, worldH, previewW, previewH);
-
-				float[,] raw = SimplexNoise.GenerateNoiseMap(
-					previewW, previewH,
-					_earthSeed,
-					200f, 5, 0.6f, 2f,
-					start.X, start.Y);
-
-				float[,] smooth = SimplexNoise.SmoothNoiseMap(raw, previewW, previewH, kernelSize: 3);
-
-				// Fill _previewDigits from this candidate
-				for (int y = 0; y < previewH; y++)
-				for (int x = 0; x < previewW; x++)
-				{
-					int wx = start.X + x;
-					int wy = start.Y + y;
-
-					float n01 = SimplexNoise.SmoothStep(0f, 1f, smooth[x, y]);
-					float mask = IslandMask(wx, wy, worldW, worldH);
-					n01 = MathHelper.Clamp(n01 * mask, 0f, 1f);
-
-					int digit = (int)(n01 * 9.999f);
-					digit = Math.Clamp(digit, 0, 9);
-					_previewDigits[x, y] = digit;
-				}
-
-				float landRatio = ComputeLandRatio(_previewDigits, previewW, previewH);
-
-				if (landRatio >= minLand)
-				{
-					_previewStart = start;
-
-					//spawn on land rather than in the middle of the ocean, lol
-					_spawnTile = PickSpawnInsideWindow(start, _previewDigits, previewW, previewH);
-
-					return;
-				}
-			}
-		}
-
-		private Point PickSpawnInsideWindow(Point start, int[,] digits, int w, int h)
-		{
-			// Prefer inland first, then coast if needed
-			List<Point> inland = new();
-			List<Point> coast = new();
-
-			for (int y = 0; y < h; y++) {
-				for (int x = 0; x < w; x++) {
-					int d = digits[x, y];
-
-					if (d >= 4) {
-						inland.Add(new Point(start.X + x, start.Y + y));
-					}
-					else if (d == 3) {
-						coast.Add(new Point(start.X + x, start.Y + y));
-					}
-				}
-			}
-
-			if (inland.Count > 0) {
-				return inland[_rng.Next(inland.Count)];
-			}
-			if (coast.Count > 0) {
-				return coast[_rng.Next(coast.Count)];
-			}
-
-			// Worst-case fallback: center of window
-			return new Point(start.X + w / 2, start.Y + h / 2);
-		}
-
 
 		private float IslandMask(int x, int y, int w, int h)
 		{
@@ -547,45 +347,6 @@ namespace UntilWeFall
 			t = MathF.Pow(t, 0.7f); // bias toward land
 
 			return t; // 0 at edges -> 1 deeper inland
-		}
-
-		private Point PickEdgeWindowStart(int worldW, int worldH, int previewW, int previewH)
-		{
-			int maxX = worldW - previewW;
-			int maxY = worldH - previewH;
-
-			int choice = _rng.Next(8); // 0..7
-
-			switch (choice)
-			{
-				// Corners
-				case 0: 
-					_previewCorner = "NW"; 
-					return new Point(0, 0);
-				case 1: 
-					_previewCorner = "NE"; 
-					return new Point(maxX, 0);
-				case 2: 
-					_previewCorner = "SW"; 
-					return new Point(0, maxY);
-				case 3: 
-					_previewCorner = "SE"; 
-					return new Point(maxX, maxY);
-
-				// Edges (random slide)
-				case 4: 
-					_previewCorner = "N";  
-					return new Point(_rng.Next(0, maxX + 1), 0);
-				case 5: 
-					_previewCorner = "S";  
-					return new Point(_rng.Next(0, maxX + 1), maxY);
-				case 6: 
-					_previewCorner = "W";  
-					return new Point(0, _rng.Next(0, maxY + 1));
-				default:
-					_previewCorner = "E";  
-					return new Point(maxX, _rng.Next(0, maxY + 1));
-			}
 		}
 
 		private float ComputeLandRatio(int[,] digits, int w, int h)
