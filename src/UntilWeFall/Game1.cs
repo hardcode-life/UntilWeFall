@@ -13,8 +13,7 @@ namespace UntilWeFall
 	{
 		private GraphicsDeviceManager _graphics;
 		private SpriteBatch _spriteBatch;
-		Dictionary<string, SpriteFont> fonts = new Dictionary<string, SpriteFont>();
-		private Texture2D mainLogo;
+		private Texture2D mainLogo, testBackground, inputBG;
 		private int screenWidth;
 		private int screenHeight;
 
@@ -97,12 +96,15 @@ namespace UntilWeFall
 			_pixel = new Texture2D(GraphicsDevice, 1, 1);
 			_pixel.SetData(new[] { Color.White });
 
-			fonts["8"] = Content.Load<SpriteFont>("font/rs_12");
-			mainLogo = Content.Load<Texture2D>("sprites/main_logo");
+			Fonts.Load(Content); // initialize FONT class
+			Textures.Load(Content); // initialize TEXTURES class
+
+			mainLogo = Textures.Get("mainLogo");
+			testBackground =Content.Load<Texture2D>("sprites/2560x1440 test");
+			inputBG = Content.Load<Texture2D>("sprites/stoneBlock");
 
 			_mapPreview.SetPreview(new Vector2(
-				(GraphicsDevice.Viewport.Width / 2) + 
-				((mainLogo.Width / 3) / 2) + 72,
+				(GraphicsDevice.Viewport.Width / 2) + 32,
 				80
 			));
 		}
@@ -211,31 +213,52 @@ namespace UntilWeFall
 			// Main logo
 			_spriteBatch.Begin();
 
+			/*_spriteBatch.Draw( // test background
+				testBackground,
+				new Rectangle(0, 0, 2560, 1440), 
+				Color.White * 0.1f);*/
+
 			_spriteBatch.Draw( // LOGO
 				mainLogo,
 				new Rectangle(
-					(GraphicsDevice.Viewport.Width / 2) - ((mainLogo.Width / 3) / 2), 
-					16, 
-					mainLogo.Width / 3, 
-					mainLogo.Height / 3), 
-				Hex("#a0a0a0") * 0.5f);
+					(GraphicsDevice.Viewport.Width / 2) - (mainLogo.Width / 2), 
+					64, 
+					mainLogo.Width / 2, 
+					mainLogo.Height / 2), 
+				Hex("#ffffff") * 0.08f);
+			_spriteBatch.DrawString(
+				Fonts.Get("24"), 
+				"UNTIL\nWE\nFALL",
+				new Vector2(
+					(GraphicsDevice.Viewport.Width / 2) - (Fonts.Get("24").MeasureString("UNTIL\nWE\nFALL").X * 2f) + 32,
+					24),
+				Color.Orange * .25f);
+
+			_spriteBatch.Draw( // SEED INPUT
+				inputBG,
+				new Rectangle(
+					GraphicsDevice.Viewport.Width / 2, 
+					20, 
+					1200, 
+					24), 
+				Hex("#ffffff"));
 
 		#region Draw UI
 		// for drawing GUI
-			_spriteBatch.DrawString(fonts["8"], $"Seed input: {_seedInput}", 
+			_spriteBatch.DrawString(Fonts.Get("12"), $"Seed : {_seedInput}", 
+				new Vector2(
+					(GraphicsDevice.Viewport.Width / 2) + 24, 
+					24), 
+				Hex("#222222"));
+			_spriteBatch.DrawString(Fonts.Get("12"), $"{_earthSeed}" + " + ", 
 				new Vector2(
 					(GraphicsDevice.Viewport.Width / 2) + ((mainLogo.Width / 3) / 2), 
-					20), 
-				Color.White);
-			_spriteBatch.DrawString(fonts["8"], $"{_earthSeed}" + " + ", 
-				new Vector2(
-					(GraphicsDevice.Viewport.Width / 2) + ((mainLogo.Width / 3) / 2), 
-					50), 
+					56), 
 				Color.White * 0.25f);
-			_spriteBatch.DrawString(fonts["8"], $"{_skySeed}", 
+			_spriteBatch.DrawString(Fonts.Get("12"), $"{_skySeed}", 
 				new Vector2(
-					(GraphicsDevice.Viewport.Width / 2) + ((mainLogo.Width / 3) / 2) + fonts["8"].MeasureString(_earthSeed.ToString() + " + ").X, 
-					50), 
+					(GraphicsDevice.Viewport.Width / 2) + ((mainLogo.Width / 3) / 2) + Fonts.Get("12").MeasureString(_earthSeed.ToString() + " + ").X, 
+					56), 
 				Color.White * 0.25f);
 		#endregion <-----DRAW UI---<<<-
 			_spriteBatch.End();
@@ -261,7 +284,7 @@ namespace UntilWeFall
 			_spriteBatch.End();
 
 		#region MAP PREVIEW
-			_mapPreview.Draw(_spriteBatch, fonts["8"]);
+			_mapPreview.Draw(_spriteBatch, Fonts.Get("12"));
 		#endregion <-----MAP PREVIEW---<<<-
 
 			base.Draw(gameTime);

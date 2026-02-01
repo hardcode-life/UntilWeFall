@@ -20,6 +20,25 @@
 /processorParam:TextureFormat=Compressed
 /build:font/rs_12.spritefont
 
+#begin font/rs_32.spritefont
+/importer:FontDescriptionImporter
+/processor:FontDescriptionProcessor
+/processorParam:PremultiplyAlpha=True
+/processorParam:TextureFormat=Compressed
+/build:font/rs_32.spritefont
+
+#begin sprites/2560x1440 test.png
+/importer:TextureImporter
+/processor:TextureProcessor
+/processorParam:ColorKeyColor=255,0,255,255
+/processorParam:ColorKeyEnabled=True
+/processorParam:GenerateMipmaps=False
+/processorParam:PremultiplyAlpha=True
+/processorParam:ResizeToPowerOfTwo=False
+/processorParam:MakeSquare=False
+/processorParam:TextureFormat=Color
+/build:sprites/2560x1440 test.png
+
 #begin sprites/main_logo.png
 /importer:TextureImporter
 /processor:TextureProcessor
@@ -31,6 +50,18 @@
 /processorParam:MakeSquare=False
 /processorParam:TextureFormat=Color
 /build:sprites/main_logo.png
+
+#begin sprites/stoneBlock.png
+/importer:TextureImporter
+/processor:TextureProcessor
+/processorParam:ColorKeyColor=255,0,255,255
+/processorParam:ColorKeyEnabled=True
+/processorParam:GenerateMipmaps=False
+/processorParam:PremultiplyAlpha=True
+/processorParam:ResizeToPowerOfTwo=False
+/processorParam:MakeSquare=False
+/processorParam:TextureFormat=Color
+/build:sprites/stoneBlock.png
 
 #begin sprites/tile_16x16.png
 /importer:TextureImporter
