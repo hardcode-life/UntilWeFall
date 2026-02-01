@@ -11,6 +11,7 @@ namespace UntilWeFall
 		private const int PreviewH = 64;
 
 		private readonly int[,] _digits = new int[PreviewW, PreviewH];
+		private readonly int[,] _glyphNoise = new int[PreviewW, PreviewH];
 
 		private bool _seeded;
 		private int _earthSeed;
@@ -108,7 +109,8 @@ namespace UntilWeFall
 						int d = (int)(n01 * 9.999f);
 						d = ClampInt(d, 0, 9);
 
-						_digits[x, y] = d;	
+						_digits[x, y] = d;
+						_glyphNoise[x, y] = _rng.Next(4);	
 					}
 				}
 
@@ -147,29 +149,59 @@ namespace UntilWeFall
 
 					if (_seeded) {
 						if (digit <= 1) {
-							color = Color.Blue * 0.5f;
+							color = Hex.convert("#14c5dd")* 0.5f; // sea
 
-							int hash = (x * 73856093) ^ (y * 19349663) ^ _earthSeed;
-							int n = Math.Abs(hash) % 4;
+							//int hash = (x * 73856093) ^ (y * 19349663) ^ _earthSeed;
+							
+							//int n = Math.Abs(hash) % 4;
+							int n = _glyphNoise[x, y];
 
 							glyph = n switch {
-								0 => ".",
-								1 => ",",
-								2 => "'",
-								_ => "+"
+								0 => "W",
+								1 => "w",
+								2 => "m",
+								_ => "M"
 							};
 						}
 						else if (digit == 2) {
-							color = Color.SkyBlue * 0.75f;
-							glyph = "%";
+							color = Hex.convert("#5af9de") * 0.75f; // reef
+
+							//glyph = "%";
+							
+							int n = _glyphNoise[x, y];
+							
+							glyph = n switch {
+								0 => "+",
+								1 => "-",
+								2 => "_",
+								_ => "/"
+							};
 						}
 						else if (digit == 3) {
-							color = Color.SandyBrown;
-							glyph = "$";
+							color = Hex.convert("#fdedaf") ; // beaches
+
+							//glyph = "$";
+							int n = _glyphNoise[x, y];
+							
+							glyph = n switch {
+								0 => "#",
+								1 => "/",
+								2 => "+",
+								_ => "%"
+							};
 						}
 						else {
-							color = Color.DarkGreen;
-							glyph = "#";
+							color = Hex.convert("#b0e832") ; // land
+
+							//glyph = "#";
+							int n = _glyphNoise[x, y];
+							
+							glyph = n switch {
+								0 => "'",
+								1 => "\"",
+								2 => ",",
+								_ => "."
+							};
 						}
 					}
 					else {

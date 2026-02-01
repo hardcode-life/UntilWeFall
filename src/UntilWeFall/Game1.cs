@@ -206,7 +206,7 @@ namespace UntilWeFall
 
 		protected override void Draw(GameTime gameTime)
 		{
-			GraphicsDevice.Clear(Hex("#070707"));
+			GraphicsDevice.Clear(Hex.convert("#070707"));
 
 			// TODO: Add your drawing code here
 			
@@ -225,7 +225,7 @@ namespace UntilWeFall
 					64, 
 					mainLogo.Width / 2, 
 					mainLogo.Height / 2), 
-				Hex("#ffffff") * 0.08f);
+				Hex.convert("#ffffff") * 0.08f);
 			_spriteBatch.DrawString(
 				Fonts.Get("24"), 
 				"UNTIL\nWE\nFALL",
@@ -241,7 +241,7 @@ namespace UntilWeFall
 					20, 
 					1200, 
 					24), 
-				Hex("#ffffff"));
+				Hex.convert("#ffffff"));
 
 		#region Draw UI
 		// for drawing GUI
@@ -249,7 +249,7 @@ namespace UntilWeFall
 				new Vector2(
 					(GraphicsDevice.Viewport.Width / 2) + 24, 
 					24), 
-				Hex("#222222"));
+				Hex.convert("#222222"));
 			_spriteBatch.DrawString(Fonts.Get("12"), $"{_earthSeed}" + " + ", 
 				new Vector2(
 					(GraphicsDevice.Viewport.Width / 2) + ((mainLogo.Width / 3) / 2), 
@@ -327,7 +327,6 @@ namespace UntilWeFall
 
 			return new Color(r, g, b);
 		}
-		*/
 		static Color Hex(string hex)
 		{
 			if (hex.StartsWith("#")) {
@@ -344,6 +343,7 @@ namespace UntilWeFall
 			
 			return new Color(r, g, b, a);
 		}
+		*/
 
 
 		private float IslandMask(int x, int y, int w, int h)
