@@ -30,14 +30,21 @@ namespace UntilWeFall
 
 			private Matrix _viewMatrix;
 			private Vector2 mouseWorld;
-			#endregion CAMERA 2D
+		#endregion <--CAMERA 2D------<<<-
 
 		#region SEED INPUT
 			private string _seedInput = "";
+			private string prevSeed ="default";
 			private int _earthSeed;
 			private int _skySeed;
 			private KeyboardState _kbPrev;
-			#endregion SEED INPUT
+			private bool _mapAccepted = false;
+			private bool _hasPreview = false;
+		#endregion <--SEED INPUT------<<<-
+
+		#region World Generation - customization
+			private string _worldName = "";
+		#endregion
 		
 		private MapPreview _mapPreview = new MapPreview();
 		private Texture2D _pixel; // temporary
@@ -103,10 +110,12 @@ namespace UntilWeFall
 			testBackground =Content.Load<Texture2D>("sprites/2560x1440 test");
 			inputBG = Content.Load<Texture2D>("sprites/stoneBlock");
 
-			_mapPreview.SetPreview(new Vector2(
-				(GraphicsDevice.Viewport.Width / 2) + 32,
-				80
-			)); // set preview ORIGIN.
+			#region MAP PREVIEW ORIGIN
+				_mapPreview.SetPreview(new Vector2(
+					GraphicsDevice.Viewport.Width - (12 * 64) - 12,
+					80
+				)); // set preview ORIGIN.
+			#endregion
 		}
 
 		protected override void Update(GameTime gameTime)
@@ -183,23 +192,53 @@ namespace UntilWeFall
 				}
 			}
 
-			// Enter = commit seed
+			#region Commit Seed
+			// Enter = commit seed / accept map
 			if (kb.IsKeyDown(Keys.Enter) && !_kbPrev.IsKeyDown(Keys.Enter))
 			{
-				SeedGenerator.Derive(_seedInput, out _earthSeed, out _skySeed);
-				_mapPreview.Regenerate(
-					earthSeed: _earthSeed,
-					skySeed: _skySeed,
-					worldW: 512,
-					worldH: 512,
-					minLandRatio: 0.45f,
-					maxAttempts: 12,
-					coast: 30f,
-					landBiasPow: 0.7f
-				);
-			}
+				// Decide what "empty" means (pick one)
+				string effectiveSeed = string.IsNullOrWhiteSpace(_seedInput) ? "default" : _seedInput;
+				bool seedChanged = prevSeed != effectiveSeed;
 
+				if (seedChanged) {
+					// if seed is empty or is not the same as the last seed....
+					SeedGenerator.Derive(effectiveSeed, out _earthSeed, out _skySeed);
+
+					_mapPreview.Regenerate(
+						earthSeed: _earthSeed,
+						skySeed: _skySeed,
+						worldW: 512,
+						worldH: 512,
+						minLandRatio: 0.45f,
+						maxAttempts: 12,
+						coast: 30f,
+						landBiasPow: 0.7f
+					);
+					_hasPreview = true;
+					_mapAccepted = false;
+
+					prevSeed = effectiveSeed;
+				} else {
+					// ...else, ACCEPT MAP
+					if (_hasPreview) {
+						SimplexNoise.GenerateNoiseMap(
+							512, 512,
+							_earthSeed,
+							200f,
+							11,
+							0.6f,
+							2f,
+							0,
+							0
+						);
+						_mapAccepted = true;
+					}
+
+					// TODO: move world gen to loading state + Task.Run
+				}
+			}
 			_kbPrev = kb;
+			#endregion
 
 			base.Update(gameTime);
 		}
@@ -209,83 +248,129 @@ namespace UntilWeFall
 			GraphicsDevice.Clear(Hex.convert("#070707"));
 
 			// TODO: Add your drawing code here
-			
-			// Main logo
 			_spriteBatch.Begin();
+				/*_spriteBatch.Draw( // test background
+					testBackground,
+					new Rectangle(0, 0, 2560, 1440), 
+					Color.White * 0.1f);*/
 
-			/*_spriteBatch.Draw( // test background
-				testBackground,
-				new Rectangle(0, 0, 2560, 1440), 
-				Color.White * 0.1f);*/
+				_spriteBatch.Draw( // LOGO
+					mainLogo,
+					new Rectangle(
+						(GraphicsDevice.Viewport.Width / 2) - (mainLogo.Width / 2), 
+						64, 
+						mainLogo.Width / 2, 
+						mainLogo.Height / 2), 
+					Hex.convert("#ffffff") * 0.08f);
+				_spriteBatch.DrawString(
+					Fonts.Get("24"), 
+					"UNTIL\nWE\nFALL",
+					new Vector2(
+						(GraphicsDevice.Viewport.Width / 2) - (Fonts.Get("24").MeasureString("UNTIL\nWE\nFALL").X * 2f) - 24,
+						128),
+					Color.Orange * .25f);
 
-			_spriteBatch.Draw( // LOGO
-				mainLogo,
-				new Rectangle(
-					(GraphicsDevice.Viewport.Width / 2) - (mainLogo.Width / 2), 
-					64, 
-					mainLogo.Width / 2, 
-					mainLogo.Height / 2), 
-				Hex.convert("#ffffff") * 0.08f);
-			_spriteBatch.DrawString(
-				Fonts.Get("24"), 
-				"UNTIL\nWE\nFALL",
-				new Vector2(
-					(GraphicsDevice.Viewport.Width / 2) - (Fonts.Get("24").MeasureString("UNTIL\nWE\nFALL").X * 2f) + 32,
-					24),
-				Color.Orange * .25f);
+				_spriteBatch.Draw( // SEED INPUT
+					inputBG,
+					new Rectangle(
+						GraphicsDevice.Viewport.Width - (1212), 
+						20, 
+						1200, 
+						24), 
+					Hex.convert("#ffffff"));
 
-			_spriteBatch.Draw( // SEED INPUT
-				inputBG,
-				new Rectangle(
-					GraphicsDevice.Viewport.Width / 2, 
-					20, 
-					1200, 
-					24), 
-				Hex.convert("#ffffff"));
+			#region Draw SEED INPUT
+				// for drawing GUI
+				_spriteBatch.DrawString(Fonts.Get("12"), $"Seed : {_seedInput}", 
+					new Vector2(
+						(GraphicsDevice.Viewport.Width / 2) + 80, 
+						24), 
+					Hex.convert("#222222"));
 
-		#region Draw UI
-		// for drawing GUI
-			_spriteBatch.DrawString(Fonts.Get("12"), $"Seed : {_seedInput}", 
-				new Vector2(
-					(GraphicsDevice.Viewport.Width / 2) + 24, 
-					24), 
-				Hex.convert("#222222"));
-			_spriteBatch.DrawString(Fonts.Get("12"), $"{_earthSeed}" + " + ", 
-				new Vector2(
-					(GraphicsDevice.Viewport.Width / 2) + ((mainLogo.Width / 3) / 2), 
-					56), 
-				Color.White * 0.25f);
-			_spriteBatch.DrawString(Fonts.Get("12"), $"{_skySeed}", 
-				new Vector2(
-					(GraphicsDevice.Viewport.Width / 2) + ((mainLogo.Width / 3) / 2) + Fonts.Get("12").MeasureString(_earthSeed.ToString() + " + ").X, 
-					56), 
-				Color.White * 0.25f);
-		#endregion <-----DRAW UI---<<<-
+				_spriteBatch.DrawString(
+					Fonts.Get("12"), 
+					$"{_earthSeed}" + " + " + $"{_skySeed}", 
+					new Vector2(
+						(GraphicsDevice.Viewport.Width / 2) + 128, 
+						56), 
+					Color.White * 0.25f);
+
+					/*
+				_spriteBatch.DrawString(Fonts.Get("12"), $"{_skySeed}", 
+					new Vector2(
+						(GraphicsDevice.Viewport.Width / 2) + ((mainLogo.Width / 3) / 2) + Fonts.Get("12").MeasureString(_earthSeed.ToString() + " + ").X + 80, 
+						56), 
+					Color.White * 0.25f);
+					*/
+			#endregion <-----DRAW SEED INPUT---<<<-
+
+			#region Map Type
+				_spriteBatch.DrawString(
+					Fonts.Get("16"),
+					"Pangaea",
+					new Vector2(
+						(GraphicsDevice.Viewport.Width / 2) + 128,
+						80),
+					Color.White);
+				_spriteBatch.DrawString(
+					Fonts.Get("16"),
+					">>",
+					new Vector2(
+						(GraphicsDevice.Viewport.Width / 2) + 100,
+						80),
+					Color.White);
+
+				_spriteBatch.DrawString(
+					Fonts.Get("16"),
+					"Archipelago",
+					new Vector2(
+						(GraphicsDevice.Viewport.Width / 2) + 128,
+						112),
+					Color.White * .5f);
+				_spriteBatch.DrawString(
+					Fonts.Get("16"),
+					"Peninsula",
+					new Vector2(
+						(GraphicsDevice.Viewport.Width / 2) + 128,
+						144),
+					Color.White * .5f);
+
+			if (_mapAccepted)
+			{
+				_spriteBatch.DrawString(
+					Fonts.Get("16"),
+					"MAP ACCEPTED",
+					new Vector2(
+						(GraphicsDevice.Viewport.Width / 2) + 128,
+						GraphicsDevice.Viewport.Height / 2),
+					Color.White * .5f);
+			}
+			#endregion
 			_spriteBatch.End();
-
+			
+			#region Draw CURSOR
 			_spriteBatch.Begin(transformMatrix: _viewMatrix, samplerState: SamplerState.PointClamp);
-		#region Draw WORLD
-		// for drawing in-world elements
-			int tileSize = 16; // or whatever
-			Vector2 snapped = new Vector2(
-				(int)(mouseWorld.X / tileSize) * tileSize,
-				(int)(mouseWorld.Y / tileSize) * tileSize
-			);
+				// snaps the cursor to tile position...
+				int tileSize = 16; // ..or whatever
+				Vector2 snapped = new Vector2(
+					(int)(mouseWorld.X / tileSize) * tileSize,
+					(int)(mouseWorld.Y / tileSize) * tileSize
+				);
 
-			_spriteBatch.Draw(
-				_pixel, 
-				new Rectangle((int)snapped.X, (int)snapped.Y, tileSize, tileSize), 
-				Color.Yellow * 0.35f
-			);
+				_spriteBatch.Draw(
+					_pixel, 
+					new Rectangle((int)snapped.X, (int)snapped.Y, tileSize, tileSize), 
+					Color.Yellow * 0.35f
+				);
 
-			DrawLine(snapped, snapped + new Vector2(tileSize, 0), Color.Yellow, 2);
-			DrawLine(snapped, snapped + new Vector2(0, tileSize), Color.Yellow, 2);
-		#endregion <-----DRAW WORLD---<<<-
+				DrawLine(snapped, snapped + new Vector2(tileSize, 0), Color.Yellow, 2);
+				DrawLine(snapped, snapped + new Vector2(0, tileSize), Color.Yellow, 2);
 			_spriteBatch.End();
+			#endregion <-----Draw CURSOR---<<<-
 
-		#region MAP PREVIEW
+			#region MAP PREVIEW
 			_mapPreview.Draw(_spriteBatch, Fonts.Get("12"));
-		#endregion <-----MAP PREVIEW---<<<-
+			#endregion <-----MAP PREVIEW---<<<-
 
 			base.Draw(gameTime);
 		}
@@ -306,7 +391,9 @@ namespace UntilWeFall
 				0
 			);
 		}
-
+/// ----------------------------------------------------
+///-----------///     HERE BE THE BONES OF THE FORGOTTEN     ///
+/// ----------------------------------------------------
 		/*
 		Color convertToRGBA(string hexString) {
 			// change HEX color to RGBA
@@ -344,49 +431,5 @@ namespace UntilWeFall
 			return new Color(r, g, b, a);
 		}
 		*/
-
-
-		private float IslandMask(int x, int y, int w, int h)
-		{
-			// distance to nearest edge in tiles
-			int distLeft = x;
-			int distRight = (w - 1) - x;
-			int distTop = y;
-			int distBottom = (h - 1) - y;
-
-			int distToEdge = Math.Min(Math.Min(distLeft, distRight), Math.Min(distTop, distBottom));
-
-			// how wide the coastal falloff zone is (in tiles)
-			float coast = 30f;
-			/*
-			30f = thin coasts
-			45f = balanced
-			60 = bigger beachs/ lowlands
-			*/
-
-			float t = MathHelper.Clamp(distToEdge / coast, 0f, 1f);
-						
-			t = t * t * (3f - 2f * t); // smoothstep for nicer curve
-			t = MathF.Pow(t, 0.7f); // bias toward land
-
-			return t; // 0 at edges -> 1 deeper inland
-		}
-
-		private float ComputeLandRatio(int[,] digits, int w, int h)
-		{
-			int land = 0;
-			int total = w * h;
-
-			for (int y = 0; y < h; y++)
-			for (int x = 0; x < w; x++)
-			{
-				// Match your PreviewMap logic!
-				// You said <=2 is water-ish in your latest preview.
-				// If you want "land" to include coast, treat digit >= 3 as land.
-				if (digits[x, y] >= 3) land++;
-			}
-
-			return land / (float)total;
-		}
 	}
 }

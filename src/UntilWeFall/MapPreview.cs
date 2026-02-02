@@ -225,11 +225,13 @@ namespace UntilWeFall
 						0.25f,
 						1f);
 
-					sb.DrawString(
-						font,
-						glyph,
-						_origin + new Vector2(x * _cellW, y * _cellH),
-						color * shade);
+					#region DRAW MAP
+						sb.DrawString(
+							font,
+							glyph,
+							_origin + new Vector2(x * _cellW, y * _cellH),
+							color * shade);
+					#endregion
 				}
 			}
 				// spawn marker (draw once)
