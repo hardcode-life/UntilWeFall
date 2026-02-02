@@ -106,7 +106,7 @@ namespace UntilWeFall
 			_mapPreview.SetPreview(new Vector2(
 				(GraphicsDevice.Viewport.Width / 2) + 32,
 				80
-			));
+			)); // set preview ORIGIN.
 		}
 
 		protected override void Update(GameTime gameTime)

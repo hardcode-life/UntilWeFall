@@ -11,7 +11,9 @@ namespace UntilWeFall
 		public static void Load(ContentManager Content)
 		{
 			fonts["12"] = Content.Load<SpriteFont>("font/rs_12");
-			fonts["24"] = Content.Load<SpriteFont>("font/rs_32");
+			fonts["16"] = Content.Load<SpriteFont>("font/rs_16");
+			fonts["24"] = Content.Load<SpriteFont>("font/rs_24");
+			fonts["32"] = Content.Load<SpriteFont>("font/rs_32");
 		}
 
 		public static SpriteFont Get (string key)

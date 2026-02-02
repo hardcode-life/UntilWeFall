@@ -20,6 +20,20 @@
 /processorParam:TextureFormat=Compressed
 /build:font/rs_12.spritefont
 
+#begin font/rs_16.spritefont
+/importer:FontDescriptionImporter
+/processor:FontDescriptionProcessor
+/processorParam:PremultiplyAlpha=True
+/processorParam:TextureFormat=Compressed
+/build:font/rs_16.spritefont
+
+#begin font/rs_24.spritefont
+/importer:FontDescriptionImporter
+/processor:FontDescriptionProcessor
+/processorParam:PremultiplyAlpha=True
+/processorParam:TextureFormat=Compressed
+/build:font/rs_24.spritefont
+
 #begin font/rs_32.spritefont
 /importer:FontDescriptionImporter
 /processor:FontDescriptionProcessor

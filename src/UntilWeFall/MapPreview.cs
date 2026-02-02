@@ -24,8 +24,8 @@ namespace UntilWeFall
 		private Random _rng = new Random(1);
 
 		// layout
-		private int _cellW = 14;
-		private int _cellH = 18;
+		private int _cellW = 12;
+		private int _cellH = 12;
 		private Vector2 _origin;
 
 		public bool Seeded => _seeded;
@@ -33,11 +33,22 @@ namespace UntilWeFall
 		public Point PreviewStart => _previewStart;
 		public Point SpawnTile => _spawnTile;
 
-		public void SetPreview(Vector2 origin, int cellW = 14, int cellH = 18)
+		public void SetPreview(
+			Vector2 origin, 
+			int? cellW = null, 
+			int? cellH = null)
 		{
 			_origin = origin;
-			_cellW = cellW;
-			_cellH = cellH;
+			
+			if (cellW.HasValue)
+			{
+				_cellW = cellW.Value;
+			}
+
+			if (cellH.HasValue)
+			{
+				_cellH = cellH.Value;
+			}
 		}
 
 		public void Regenerate(
@@ -131,7 +142,7 @@ namespace UntilWeFall
 
 			// fallback
 			_previewStart = Point.Zero;
-			_previewLabel = "fallback";
+			_previewLabel = "somewhere totally random, lol";
 			_spawnTile = new Point(worldW / 2, worldH / 2);
 		}
 
@@ -241,7 +252,7 @@ namespace UntilWeFall
 				}	
 				// label (draw once)
 				sb.DrawString(
-					Fonts.Get("24"), 
+					Fonts.Get("16"), 
 					$"Landfall : {_previewLabel}", 
 					_origin + new Vector2(
 						32, 
