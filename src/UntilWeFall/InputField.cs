@@ -10,71 +10,140 @@ public class InputField
 	public string Text;
 	public SpriteFont Font;
 	public Texture2D Background;
+	public Color textColor;
 
-	public string defaultString = "";
-	public string inputString = "";
+	public string Placeholder = "";
+	public string Value  = "";
 
 	public bool _hovered { get; private set; }
 	public Action OnClick;
 	private bool _wasPressed;
 
 	public bool Enabled = true;
-	public bool Selected = false;
-	public InputField(Rectangle bounds, string _defaultString, SpriteFont font, Action onClick, Texture2D background)
+	public bool IsFocused { get; private set; }
+
+	public Action? OnFocus;
+	public Action? OnBlur;
+
+	public int MaxLength = 128;
+
+	public InputField(
+		Rectangle bounds, 
+		string _defaultString, 
+		SpriteFont font, 
+		Action onClick, 
+		Texture2D background,
+		Color color)
 	{
 		Bounds = bounds;
-		defaultString = _defaultString;
+		Placeholder  = _defaultString;
 
 		Font = font;
 		Background = background;
+		textColor = color;
 		OnClick = onClick;
+	}
+
+	public void Focus()
+	{
+		if (!Enabled) {
+			return;
+		}
+
+		if (IsFocused) {
+			return;
+		}
+
+		IsFocused = true;
+		OnFocus?.Invoke();
+	}
+
+	public void Blur()
+	{
+		if (!IsFocused) {
+			return;
+		}
+
+		IsFocused = false;
+		OnBlur?.Invoke();
+	}
+
+	public void Append(char c)
+	{
+	if (!Enabled || !IsFocused) return;
+	if (Value.Length >= MaxLength) return;
+
+	Value += c;
 	}
 
 	public void Update(MouseState mouse)
 	{
 		if (!Enabled)
 		{
+			_hovered = false;
 			return;
 		}
-		else {	
-			Point mousePoint = new Point(mouse.X, mouse.Y);
-			_hovered = Bounds.Contains(mousePoint);
 
-			if (_hovered)
-			{
-				Mouse.SetCursor(MouseCursor.Hand);
-			}
+		_hovered = Bounds.Contains(mouse.X, mouse.Y);
 
-			bool _isPressed = mouse.LeftButton == ButtonState.Pressed;
-
-			if (_hovered && _isPressed && !_wasPressed)
-			{
-				// if Left BTN is pressed, Invoke action
-				OnClick?.Invoke();
-				Text = "hello";
-			}
-			_wasPressed = _isPressed;
+		if (_hovered) {
+			Mouse.SetCursor(MouseCursor.Hand);
 		}
 	}
 
 	public void Draw(SpriteBatch sb)
 	{
-		var tint = !Enabled ? Color.DarkGray :
-		_hovered ? Color.Gray :
-		Color.White;
+		Color tint =
+			!Enabled ? Color.DarkGray :
+			IsFocused ? Color.White :
+			_hovered ? Color.Gray :
+			Color.White;
 
-		if (Background != null)
-		sb.Draw(Background, Bounds, tint);
+		if (Background != null) {
+			sb.Draw(Background, Bounds, tint);
+		}
 
 		if (Font == null) return;
 
-		string shown = string.IsNullOrEmpty(inputString) ? defaultString : inputString;
+		bool showPlaceholder = string.IsNullOrEmpty(Value);
+        		string toShow = showPlaceholder ? Placeholder : Value;
+
+		// Placeholder should be dimmer
+        		Color finalColor = showPlaceholder ? (textColor * 0.45f) : textColor;
+
+		// Padding
+        		Vector2 pos = new Vector2(16, 0);
 
 		if (Font != null)
 		{
 			Vector2 textPos = new Vector2(Bounds.X,Bounds.Y);
-
-			sb.DrawString(Font, shown, textPos, Color.White);
+			sb.DrawString(
+				Font, 
+				toShow, 
+				textPos + pos, 
+				finalColor);
 		}
+
+		if (IsFocused)
+		{
+			// Put caret at end of current text
+			float w = Font.MeasureString(toShow).X;
+			sb.DrawString(Font, "|", pos + new Vector2(w + 2, 0), finalColor);
+		}
+	}
+
+	public void Backspace()
+	{
+		if (Value.Length > 0) {
+			Value = Value[..^1];
+		}
+	}
+
+	public void Clear()
+	{
+		if (!Enabled) {
+			return;
+		}
+		Value = "";
 	}
 }

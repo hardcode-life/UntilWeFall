@@ -40,10 +40,13 @@ namespace UntilWeFall
 			private Vector2 mouseWorld;
 		#endregion <--CAMERA 2D------<<<-
 
-		private string _string = "";
+		private InputField? _focusedInput;
+
 
 		#region SEED INPUT
-			private string _seedInput = "";
+			private Rectangle seed_Input_bounds;
+			private InputField seed_Input;
+
 			private string prevSeed ="default";
 			private int _earthSeed;
 			private int _skySeed;
@@ -94,19 +97,6 @@ namespace UntilWeFall
 			base.Initialize();
 		}
 
-		private void OnTextInput(object sender, TextInputEventArgs e)
-		{
-			char c = e.Character;
-
-			// ignore control characters
-			if (char.IsControl(c)) { return; }
-
-			if (char.IsLetterOrDigit(c) || c == ' ' || c == '-' || c == '_')
-			{
-				_seedInput += c;
-			}
-		}
-
 		protected override void LoadContent()
 		{
 			// TODO: use this.Content to load your game content here
@@ -129,13 +119,29 @@ namespace UntilWeFall
 				)); // set preview ORIGIN.
 			#endregion
 			
+			#region INPUT FIELDS
 			worldName_Input_bounds = new Rectangle(0, 0, 500, 500);
 			worldName_Input = new InputField(
 				worldName_Input_bounds,
-				"this is a test",
+				"What do you name this land?",
 				Fonts.Get("16"),
-				() => worldName_Input.inputString = "hello",
-				inputBG);
+				() => worldName_Input.Clear(),
+				inputBG,
+				Color.Black);
+
+			seed_Input_bounds = new Rectangle(
+				(GraphicsDevice.Viewport.Width / 2) + 80, 
+				24,
+				1200,
+				24);
+			seed_Input = new InputField(
+				seed_Input_bounds,
+				"Enter seed . . .",
+				Fonts.Get("16"),
+				() => seed_Input.Clear(),
+				inputBG,
+				Color.Black);
+		#endregion
 		}
 
 		protected override void Update(GameTime gameTime)
@@ -199,7 +205,26 @@ namespace UntilWeFall
 						new Vector2(mouse.X, mouse.Y), 
 						zoomFactor);
 				}
+			}	
+			
+			bool click = mouse.LeftButton == ButtonState.Pressed &&
+				_mousePrev.LeftButton == ButtonState.Released;
+
+			if (click)
+			{
+				InputField? next =
+					seed_Input.Bounds.Contains(mouse.Position) ? seed_Input :
+					worldName_Input.Bounds.Contains(mouse.Position) ? worldName_Input :
+					null;
+
+				if (next != _focusedInput)
+				{
+					_focusedInput?.Blur();
+					_focusedInput = next;
+					_focusedInput?.Focus();
+				}
 			}
+
 
 			_mousePrev = mouse;
 
@@ -209,17 +234,20 @@ namespace UntilWeFall
 			// Backspace
 			if (kb.IsKeyDown(Keys.Back) && !_kbPrev.IsKeyDown(Keys.Back))
 			{
-				if (_seedInput.Length > 0) {
-					_seedInput = _seedInput[..^1];
-				}
+				_focusedInput?.Backspace();
 			}
 
 			#region Commit Seed
+			bool seedFocused = _focusedInput == seed_Input;
+
 			// Enter = commit seed / accept map
-			if (kb.IsKeyDown(Keys.Enter) && !_kbPrev.IsKeyDown(Keys.Enter))
+			if (seedFocused &&  kb.IsKeyDown(Keys.Enter) && !_kbPrev.IsKeyDown(Keys.Enter))
 			{
 				// Decide what "empty" means (pick one)
-				string effectiveSeed = string.IsNullOrWhiteSpace(_seedInput) ? "default" : _seedInput;
+				string effectiveSeed = string.IsNullOrWhiteSpace(
+					seed_Input.Value) ? "default"
+					: seed_Input.Value;
+
 				bool seedChanged = prevSeed != effectiveSeed;
 
 				if (seedChanged) {
@@ -261,8 +289,9 @@ namespace UntilWeFall
 			}
 			_kbPrev = kb;
 			#endregion
-			
+
 			worldName_Input.Update(mouse);
+			seed_Input.Update(mouse);
 
 			base.Update(gameTime);
 		}
@@ -294,24 +323,24 @@ namespace UntilWeFall
 						128),
 					Color.Orange * .25f);
 
-				_spriteBatch.Draw( // SEED INPUT
+				/*_spriteBatch.Draw( // SEED INPUT
 					inputBG,
 					new Rectangle(
 						GraphicsDevice.Viewport.Width - (1212), 
 						20, 
 						1200, 
 						24), 
-					Hex.convert("#ffffff"));
+					Hex.convert("#ffffff"));*/
 
 			#region Draw SEED INPUT
 				// for drawing GUI
-				_spriteBatch.DrawString(
+				/*_spriteBatch.DrawString(
 					Fonts.Get("12"), 
 					$"Seed : {_seedInput}", 
 					new Vector2(
 						(GraphicsDevice.Viewport.Width / 2) + 80, 
 						24), 
-					Hex.convert("#222222"));
+					Hex.convert("#222222"));*/
 
 				_spriteBatch.DrawString(
 					Fonts.Get("12"), 
@@ -330,7 +359,8 @@ namespace UntilWeFall
 					*/
 			#endregion <-----DRAW SEED INPUT---<<<-
 
-			#region Map Type
+			#region Input
+			seed_Input.Draw(_spriteBatch);
 			worldName_Input.Draw(_spriteBatch);
 
 			if (_mapAccepted)
@@ -347,7 +377,7 @@ namespace UntilWeFall
 			_spriteBatch.End();
 			
 			#region Draw CURSOR
-			_spriteBatch.Begin(transformMatrix: _viewMatrix, samplerState: SamplerState.PointClamp);
+			_spriteBatch.Begin(transformMatrix: _viewMatrix, samplerState: 	SamplerState.PointClamp);
 				// snaps the cursor to tile position...
 				int tileSize = 16; // ..or whatever
 				Vector2 snapped = new Vector2(
@@ -389,6 +419,23 @@ namespace UntilWeFall
 				0
 			);
 		}
+
+		private void OnTextInput(object sender, TextInputEventArgs e)
+		{
+			if (_focusedInput == null) {
+				return;
+			}
+
+			char c = e.Character;
+			if (char.IsControl(c)) {
+				return;
+			}
+
+			if (char.IsLetterOrDigit(c) || c == ' ' || c == '-' || c == '_') {
+				_focusedInput.Append(c);
+			}
+		}
+		
 /// ----------------------------------------------------
 ///-----------///     HERE BE THE BONES OF THE FORGOTTEN     ///
 /// ----------------------------------------------------
