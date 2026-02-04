@@ -11,6 +11,14 @@ namespace UntilWeFall
 {	
 	public class Game1 : Game
 	{
+		private enum GameState
+		{
+			StartMenu,
+			Creation,
+			Loading,
+			Playing
+		}
+		GameState currentGameState = GameState.Creation;
 		private GraphicsDeviceManager _graphics;
 		private SpriteBatch _spriteBatch;
 		private Texture2D mainLogo, testBackground, inputBG;
@@ -32,6 +40,8 @@ namespace UntilWeFall
 			private Vector2 mouseWorld;
 		#endregion <--CAMERA 2D------<<<-
 
+		private string _string = "";
+
 		#region SEED INPUT
 			private string _seedInput = "";
 			private string prevSeed ="default";
@@ -43,7 +53,9 @@ namespace UntilWeFall
 		#endregion <--SEED INPUT------<<<-
 
 		#region World Generation - customization
-			private string _worldName = "";
+			private string _worldName = "world name";
+			private Rectangle worldName_Input_bounds;
+			private InputField worldName_Input;
 		#endregion
 		
 		private MapPreview _mapPreview = new MapPreview();
@@ -116,6 +128,14 @@ namespace UntilWeFall
 					80
 				)); // set preview ORIGIN.
 			#endregion
+			
+			worldName_Input_bounds = new Rectangle(0, 0, 500, 500);
+			worldName_Input = new InputField(
+				worldName_Input_bounds,
+				"this is a test",
+				Fonts.Get("16"),
+				() => worldName_Input.inputString = "hello",
+				inputBG);
 		}
 
 		protected override void Update(GameTime gameTime)
@@ -130,53 +150,55 @@ namespace UntilWeFall
 			var kb = Keyboard.GetState();
 			var mouse = Mouse.GetState();
 
-			int w = GraphicsDevice.Viewport.Width;
-			int h = GraphicsDevice.Viewport.Height;
-			if (w != _camera.ViewportWidth || h != _camera.ViewportHeight)
-			{
-				_camera.SetViewportSize(w, h);
-			}
-
-			Vector2 move = Vector2.Zero;
-			// camera PAN
-			if (kb.IsKeyDown(Keys.W) || kb.IsKeyDown(Keys.Up))
-				move.Y -= 1;
-
-			if (kb.IsKeyDown(Keys.S) || kb.IsKeyDown(Keys.Down))
-				move.Y += 1;
-
-			if (kb.IsKeyDown(Keys.A) || kb.IsKeyDown(Keys.Left))
-				move.X -= 1;
-
-			if (kb.IsKeyDown(Keys.D) || kb.IsKeyDown(Keys.Right))
-				move.X += 1;
-			
-			if (move != Vector2.Zero) {
-    				move.Normalize();
-				float speed = _panSpeed / _camera.Zoom; // camera movement slows when zoomed in, relative to how close you're zoomed in.
-				_camera.Pan( move * speed * dt);
-			}
-
-			int wheelDelta = mouse.ScrollWheelValue - _mousePrev.ScrollWheelValue;
-			if (wheelDelta != 0)
-			{
-				int notches = wheelDelta / 120; // typically ±1
-				float zoomFactor = 1f;
-
-				if (notches > 0) {
-					for (int i = 0; i < notches; i++) {
-						zoomFactor *= (1f + _zoomStep);
-					}
-				}
-				else {
-					for (int i = 0; i < -notches; i++) {
-						zoomFactor *= (1f - _zoomStep);
-					}
+			if(currentGameState == GameState.Playing) {
+				int w = GraphicsDevice.Viewport.Width;
+				int h = GraphicsDevice.Viewport.Height;
+				if (w != _camera.ViewportWidth || h != _camera.ViewportHeight)
+				{
+					_camera.SetViewportSize(w, h);
 				}
 
-				_camera.ZoomAtScreenPoint(
-					new Vector2(mouse.X, mouse.Y), 
-					zoomFactor);
+				Vector2 move = Vector2.Zero;
+				// camera PAN
+				if (kb.IsKeyDown(Keys.W) || kb.IsKeyDown(Keys.Up))
+					move.Y -= 1;
+
+				if (kb.IsKeyDown(Keys.S) || kb.IsKeyDown(Keys.Down))
+					move.Y += 1;
+
+				if (kb.IsKeyDown(Keys.A) || kb.IsKeyDown(Keys.Left))
+					move.X -= 1;
+
+				if (kb.IsKeyDown(Keys.D) || kb.IsKeyDown(Keys.Right))
+					move.X += 1;
+				
+				if (move != Vector2.Zero) {
+					move.Normalize();
+					float speed = _panSpeed / _camera.Zoom; // camera movement slows when zoomed in, relative to how close you're zoomed in.
+					_camera.Pan( move * speed * dt);
+				}
+
+				int wheelDelta = mouse.ScrollWheelValue - _mousePrev.ScrollWheelValue;
+				if (wheelDelta != 0)
+				{
+					int notches = wheelDelta / 120; // typically ±1
+					float zoomFactor = 1f;
+
+					if (notches > 0) {
+						for (int i = 0; i < notches; i++) {
+							zoomFactor *= (1f + _zoomStep);
+						}
+					}
+					else {
+						for (int i = 0; i < -notches; i++) {
+							zoomFactor *= (1f - _zoomStep);
+						}
+					}
+
+					_camera.ZoomAtScreenPoint(
+						new Vector2(mouse.X, mouse.Y), 
+						zoomFactor);
+				}
 			}
 
 			_mousePrev = mouse;
@@ -239,13 +261,15 @@ namespace UntilWeFall
 			}
 			_kbPrev = kb;
 			#endregion
+			
+			worldName_Input.Update(mouse);
 
 			base.Update(gameTime);
 		}
 
 		protected override void Draw(GameTime gameTime)
 		{
-			GraphicsDevice.Clear(Hex.convert("#070707"));
+			GraphicsDevice.Clear(Hex.convert("#242f36")); // 242f36
 
 			// TODO: Add your drawing code here
 			_spriteBatch.Begin();
@@ -281,7 +305,9 @@ namespace UntilWeFall
 
 			#region Draw SEED INPUT
 				// for drawing GUI
-				_spriteBatch.DrawString(Fonts.Get("12"), $"Seed : {_seedInput}", 
+				_spriteBatch.DrawString(
+					Fonts.Get("12"), 
+					$"Seed : {_seedInput}", 
 					new Vector2(
 						(GraphicsDevice.Viewport.Width / 2) + 80, 
 						24), 
@@ -305,35 +331,7 @@ namespace UntilWeFall
 			#endregion <-----DRAW SEED INPUT---<<<-
 
 			#region Map Type
-				_spriteBatch.DrawString(
-					Fonts.Get("16"),
-					"Pangaea",
-					new Vector2(
-						(GraphicsDevice.Viewport.Width / 2) + 128,
-						80),
-					Color.White);
-				_spriteBatch.DrawString(
-					Fonts.Get("16"),
-					">>",
-					new Vector2(
-						(GraphicsDevice.Viewport.Width / 2) + 100,
-						80),
-					Color.White);
-
-				_spriteBatch.DrawString(
-					Fonts.Get("16"),
-					"Archipelago",
-					new Vector2(
-						(GraphicsDevice.Viewport.Width / 2) + 128,
-						112),
-					Color.White * .5f);
-				_spriteBatch.DrawString(
-					Fonts.Get("16"),
-					"Peninsula",
-					new Vector2(
-						(GraphicsDevice.Viewport.Width / 2) + 128,
-						144),
-					Color.White * .5f);
+			worldName_Input.Draw(_spriteBatch);
 
 			if (_mapAccepted)
 			{

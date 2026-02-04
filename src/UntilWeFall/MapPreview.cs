@@ -160,7 +160,7 @@ namespace UntilWeFall
 
 					if (_seeded) {
 						if (digit <= 1) {
-							color = Hex.convert("#14c5dd")* 0.5f; // sea
+							color = Hex.convert("#14c5dd"); // sea
 
 							//int hash = (x * 73856093) ^ (y * 19349663) ^ _earthSeed;
 							
@@ -175,7 +175,7 @@ namespace UntilWeFall
 							};
 						}
 						else if (digit == 2) {
-							color = Hex.convert("#5af9de") * 0.75f; // reef
+							color = Hex.convert("#5af9de"); // reef
 
 							//glyph = "%";
 							
