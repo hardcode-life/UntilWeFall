@@ -42,7 +42,6 @@ namespace UntilWeFall
 
 		private InputField? _focusedInput;
 
-
 		#region SEED INPUT
 			private Rectangle seed_Input_bounds;
 			private InputField seed_Input;
@@ -56,7 +55,6 @@ namespace UntilWeFall
 		#endregion <--SEED INPUT------<<<-
 
 		#region World Generation - customization
-			private string _worldName = "world name";
 			private Rectangle worldName_Input_bounds;
 			private InputField worldName_Input;
 		#endregion
@@ -120,13 +118,17 @@ namespace UntilWeFall
 			#endregion
 			
 			#region INPUT FIELDS
-			worldName_Input_bounds = new Rectangle(0, 0, 500, 500);
+			worldName_Input_bounds = new Rectangle(
+				0, 
+				0, 
+				500, 
+				24);
 			worldName_Input = new InputField(
 				worldName_Input_bounds,
 				"What do you name this land?",
 				Fonts.Get("16"),
 				() => worldName_Input.Clear(),
-				inputBG,
+				_pixel,
 				Color.Black);
 
 			seed_Input_bounds = new Rectangle(
@@ -139,9 +141,9 @@ namespace UntilWeFall
 				"Enter seed . . .",
 				Fonts.Get("16"),
 				() => seed_Input.Clear(),
-				inputBG,
+				_pixel,
 				Color.Black);
-		#endregion
+			#endregion
 		}
 
 		protected override void Update(GameTime gameTime)
@@ -301,80 +303,67 @@ namespace UntilWeFall
 			GraphicsDevice.Clear(Hex.convert("#242f36")); // 242f36
 
 			// TODO: Add your drawing code here
-			_spriteBatch.Begin();
-				/*_spriteBatch.Draw( // test background
-					testBackground,
-					new Rectangle(0, 0, 2560, 1440), 
-					Color.White * 0.1f);*/
+			if (currentGameState == GameState.StartMenu)
+			{
+				// Start
+				// Settings
+				// Exit
+			}
 
-				_spriteBatch.Draw( // LOGO
-					mainLogo,
-					new Rectangle(
-						(GraphicsDevice.Viewport.Width / 2) - (mainLogo.Width / 2), 
-						64, 
-						mainLogo.Width / 2, 
-						mainLogo.Height / 2), 
-					Hex.convert("#ffffff") * 0.08f);
-				_spriteBatch.DrawString(
-					Fonts.Get("24"), 
-					"UNTIL\nWE\nFALL",
-					new Vector2(
-						(GraphicsDevice.Viewport.Width / 2) - (Fonts.Get("24").MeasureString("UNTIL\nWE\nFALL").X * 2f) - 24,
-						128),
-					Color.Orange * .25f);
+			if(currentGameState == GameState.Creation) {
+				_spriteBatch.Begin();
+					/*_spriteBatch.Draw( // test background
+						testBackground,
+						new Rectangle(0, 0, 2560, 1440), 
+						Color.White * 0.1f);*/
 
-				/*_spriteBatch.Draw( // SEED INPUT
-					inputBG,
-					new Rectangle(
-						GraphicsDevice.Viewport.Width - (1212), 
-						20, 
-						1200, 
-						24), 
-					Hex.convert("#ffffff"));*/
+					_spriteBatch.Draw( // LOGO
+						mainLogo,
+						new Rectangle(
+							(GraphicsDevice.Viewport.Width / 2) - (mainLogo.Width / 2), 
+							64, 
+							mainLogo.Width / 2, 
+							mainLogo.Height / 2), 
+						Hex.convert("#ffffff") * 0.08f);
+					_spriteBatch.DrawString(
+						Fonts.Get("24"), 
+						"UNTIL\nWE\nFALL",
+						new Vector2(
+							(GraphicsDevice.Viewport.Width / 2) - (Fonts.Get("24").MeasureString("UNTIL\nWE\nFALL").X * 2f) - 24,
+							128),
+						Color.Orange * .25f);
 
 			#region Draw SEED INPUT
-				// for drawing GUI
-				/*_spriteBatch.DrawString(
-					Fonts.Get("12"), 
-					$"Seed : {_seedInput}", 
-					new Vector2(
-						(GraphicsDevice.Viewport.Width / 2) + 80, 
-						24), 
-					Hex.convert("#222222"));*/
-
-				_spriteBatch.DrawString(
-					Fonts.Get("12"), 
-					$"{_earthSeed}" + " + " + $"{_skySeed}", 
-					new Vector2(
-						(GraphicsDevice.Viewport.Width / 2) + 128, 
-						56), 
-					Color.White * 0.25f);
-
-					/*
-				_spriteBatch.DrawString(Fonts.Get("12"), $"{_skySeed}", 
-					new Vector2(
-						(GraphicsDevice.Viewport.Width / 2) + ((mainLogo.Width / 3) / 2) + Fonts.Get("12").MeasureString(_earthSeed.ToString() + " + ").X + 80, 
-						56), 
-					Color.White * 0.25f);
-					*/
-			#endregion <-----DRAW SEED INPUT---<<<-
+					_spriteBatch.DrawString(
+						Fonts.Get("12"), 
+						$"{_earthSeed}" + " + " + $"{_skySeed}", 
+						new Vector2(
+							(GraphicsDevice.Viewport.Width / 2) + 128, 
+							56), 
+						Color.White * 0.25f);
+				#endregion <-----DRAW SEED INPUT---<<<-
 
 			#region Input
-			seed_Input.Draw(_spriteBatch);
-			worldName_Input.Draw(_spriteBatch);
+				seed_Input.Draw(_spriteBatch);
+				worldName_Input.Draw(_spriteBatch);
+				#endregion  <------ INPUT ----<<<-
 
-			if (_mapAccepted)
-			{
-				_spriteBatch.DrawString(
-					Fonts.Get("16"),
-					"MAP ACCEPTED",
-					new Vector2(
-						(GraphicsDevice.Viewport.Width / 2) + 128,
-						GraphicsDevice.Viewport.Height / 2),
-					Color.White * .5f);
-			}
-			#endregion
-			_spriteBatch.End();
+				if (_mapAccepted)
+				{
+					_spriteBatch.DrawString(
+						Fonts.Get("16"),
+						"MAP ACCEPTED",
+						new Vector2(
+							(GraphicsDevice.Viewport.Width / 2) + 128,
+							GraphicsDevice.Viewport.Height / 2),
+						Color.White * .5f);
+				}
+				_spriteBatch.End();
+
+			#region MAP PREVIEW
+				_mapPreview.Draw(_spriteBatch, Fonts.Get("12"));
+				#endregion <-----MAP PREVIEW---<<<-
+			} // end of Gamestate: CREATION
 			
 			#region Draw CURSOR
 			_spriteBatch.Begin(transformMatrix: _viewMatrix, samplerState: 	SamplerState.PointClamp);
@@ -395,10 +384,6 @@ namespace UntilWeFall
 				DrawLine(snapped, snapped + new Vector2(0, tileSize), Color.Yellow, 2);
 			_spriteBatch.End();
 			#endregion <-----Draw CURSOR---<<<-
-
-			#region MAP PREVIEW
-			_mapPreview.Draw(_spriteBatch, Fonts.Get("12"));
-			#endregion <-----MAP PREVIEW---<<<-
 
 			base.Draw(gameTime);
 		}

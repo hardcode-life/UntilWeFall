@@ -100,7 +100,7 @@ public class InputField
 			Color.White;
 
 		if (Background != null) {
-			sb.Draw(Background, Bounds, tint);
+			sb.Draw(Background, Bounds, Color.Orange);
 		}
 
 		if (Font == null) return;
