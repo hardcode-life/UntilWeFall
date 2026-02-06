@@ -8,17 +8,11 @@ using System;
 using System.Collections.Generic;
 
 namespace UntilWeFall
-{	
+{
 	public class Game1 : Game
 	{
-		private enum GameState
-		{
-			StartMenu,
-			Creation,
-			Loading,
-			Playing
-		}
-		GameState currentGameState = GameState.Creation;
+		private IGameState _state;
+		private GameContext _ctx;
 		private GraphicsDeviceManager _graphics;
 		private SpriteBatch _spriteBatch;
 		private Texture2D mainLogo, testBackground, inputBG;
@@ -36,31 +30,10 @@ namespace UntilWeFall
 			private float _panSpeed = 800f;
 			private float _zoomStep = 0.10f;
 
-			private Matrix _viewMatrix;
+			public Matrix _viewMatrix;
 			private Vector2 mouseWorld;
 		#endregion <--CAMERA 2D------<<<-
 
-		private InputField? _focusedInput;
-
-		#region SEED INPUT
-			private Rectangle seed_Input_bounds;
-			private InputField seed_Input;
-
-			private string prevSeed ="default";
-			private int _earthSeed;
-			private int _skySeed;
-			private KeyboardState _kbPrev;
-			private bool _mapAccepted = false;
-			private bool _hasPreview = false;
-		#endregion <--SEED INPUT------<<<-
-
-		#region World Generation - customization
-			private Rectangle worldName_Input_bounds;
-			private InputField worldName_Input;
-		#endregion
-		
-		private MapPreview _mapPreview = new MapPreview();
-		private Texture2D _pixel; // temporary
 
 		public Game1()
 		{
@@ -89,7 +62,7 @@ namespace UntilWeFall
 
 			_camera = new Camera2D(GraphicsDevice.Viewport.Width, GraphicsDevice.Viewport.Height);
 
-			Window.TextInput += OnTextInput;
+			//Window.TextInput += OnTextInput;
 			Window.Position = Point.Zero; // FORCE TOP-LEFT
 
 			base.Initialize();
@@ -99,9 +72,8 @@ namespace UntilWeFall
 		{
 			// TODO: use this.Content to load your game content here
 			_spriteBatch = new SpriteBatch(GraphicsDevice);
-
-			_pixel = new Texture2D(GraphicsDevice, 1, 1);
-			_pixel.SetData(new[] { Color.White });
+			
+			_ctx = new GameContext(this, GraphicsDevice, Content, _spriteBatch);
 
 			Fonts.Load(Content); // initialize FONT class
 			Textures.Load(Content); // initialize TEXTURES class
@@ -110,47 +82,32 @@ namespace UntilWeFall
 			testBackground =Content.Load<Texture2D>("sprites/2560x1440 test");
 			inputBG = Content.Load<Texture2D>("sprites/stoneBlock");
 
-			#region MAP PREVIEW ORIGIN
-				_mapPreview.SetPreview(new Vector2(
-					GraphicsDevice.Viewport.Width - (12 * 64) - 12,
-					80
-				)); // set preview ORIGIN.
-			#endregion
-			
-			#region INPUT FIELDS
-			worldName_Input_bounds = new Rectangle(
-				0, 
-				0, 
-				500, 
-				24);
-			worldName_Input = new InputField(
-				worldName_Input_bounds,
-				"What do you name this land?",
-				Fonts.Get("16"),
-				() => worldName_Input.Clear(),
-				_pixel,
-				Color.Black);
+			ChangeState(GameStateID.Creation);
+		}
 
-			seed_Input_bounds = new Rectangle(
-				(GraphicsDevice.Viewport.Width / 2) + 80, 
-				24,
-				1200,
-				24);
-			seed_Input = new InputField(
-				seed_Input_bounds,
-				"Enter seed . . .",
-				Fonts.Get("16"),
-				() => seed_Input.Clear(),
-				_pixel,
-				Color.Black);
-			#endregion
+		
+		private void ChangeState(GameStateID id)
+		{
+			_state?.Exit();
+
+			_state = id switch
+			{
+				GameStateID.Creation => new Creation(_ctx, ChangeState),
+				GameStateID.StartMenu => new StartMenu(_ctx, ChangeState),
+				GameStateID.Loading => new Loading(_ctx, ChangeState),
+				GameStateID.Playing => new Playing(_ctx, ChangeState),
+				_ => throw new Exception("Unknown state")
+			};
+
+			_state.Enter();
 		}
 
 		protected override void Update(GameTime gameTime)
 		{
+		/*
 			if (Keyboard.GetState().IsKeyDown(Keys.Escape)) {
 				Exit();
-			}
+			}*/
 
 			// TODO: Add your update logic here
 			float dt = (float)gameTime.ElapsedGameTime.TotalSeconds;
@@ -158,7 +115,6 @@ namespace UntilWeFall
 			var kb = Keyboard.GetState();
 			var mouse = Mouse.GetState();
 
-			if(currentGameState == GameState.Playing) {
 				int w = GraphicsDevice.Viewport.Width;
 				int h = GraphicsDevice.Viewport.Height;
 				if (w != _camera.ViewportWidth || h != _camera.ViewportHeight)
@@ -207,94 +163,9 @@ namespace UntilWeFall
 						new Vector2(mouse.X, mouse.Y), 
 						zoomFactor);
 				}
-			}	
 			
-			bool click = mouse.LeftButton == ButtonState.Pressed &&
-				_mousePrev.LeftButton == ButtonState.Released;
-
-			if (click)
-			{
-				InputField? next =
-					seed_Input.Bounds.Contains(mouse.Position) ? seed_Input :
-					worldName_Input.Bounds.Contains(mouse.Position) ? worldName_Input :
-					null;
-
-				if (next != _focusedInput)
-				{
-					_focusedInput?.Blur();
-					_focusedInput = next;
-					_focusedInput?.Focus();
-				}
-			}
-
-
-			_mousePrev = mouse;
-
-			_viewMatrix = _camera.GetViewMatrix();
-			mouseWorld = _camera.ScreenToWorld(new Vector2(mouse.X, mouse.Y));
-
-			// Backspace
-			if (kb.IsKeyDown(Keys.Back) && !_kbPrev.IsKeyDown(Keys.Back))
-			{
-				_focusedInput?.Backspace();
-			}
-
-			#region Commit Seed
-			bool seedFocused = _focusedInput == seed_Input;
-
-			// Enter = commit seed / accept map
-			if (seedFocused &&  kb.IsKeyDown(Keys.Enter) && !_kbPrev.IsKeyDown(Keys.Enter))
-			{
-				// Decide what "empty" means (pick one)
-				string effectiveSeed = string.IsNullOrWhiteSpace(
-					seed_Input.Value) ? "default"
-					: seed_Input.Value;
-
-				bool seedChanged = prevSeed != effectiveSeed;
-
-				if (seedChanged) {
-					// if seed is empty or is not the same as the last seed....
-					SeedGenerator.Derive(effectiveSeed, out _earthSeed, out _skySeed);
-
-					_mapPreview.Regenerate(
-						earthSeed: _earthSeed,
-						skySeed: _skySeed,
-						worldW: 512,
-						worldH: 512,
-						minLandRatio: 0.45f,
-						maxAttempts: 12,
-						coast: 30f,
-						landBiasPow: 0.7f
-					);
-					_hasPreview = true;
-					_mapAccepted = false;
-
-					prevSeed = effectiveSeed;
-				} else {
-					// ...else, ACCEPT MAP
-					if (_hasPreview) {
-						SimplexNoise.GenerateNoiseMap(
-							512, 512,
-							_earthSeed,
-							200f,
-							11,
-							0.6f,
-							2f,
-							0,
-							0
-						);
-						_mapAccepted = true;
-					}
-
-					// TODO: move world gen to loading state + Task.Run
-				}
-			}
-			_kbPrev = kb;
-			#endregion
-
-			worldName_Input.Update(mouse);
-			seed_Input.Update(mouse);
-
+			
+			_state.Update(gameTime);
 			base.Update(gameTime);
 		}
 
@@ -303,14 +174,7 @@ namespace UntilWeFall
 			GraphicsDevice.Clear(Hex.convert("#242f36")); // 242f36
 
 			// TODO: Add your drawing code here
-			if (currentGameState == GameState.StartMenu)
-			{
-				// Start
-				// Settings
-				// Exit
-			}
 
-			if(currentGameState == GameState.Creation) {
 				_spriteBatch.Begin();
 					/*_spriteBatch.Draw( // test background
 						testBackground,
@@ -332,94 +196,13 @@ namespace UntilWeFall
 							(GraphicsDevice.Viewport.Width / 2) - (Fonts.Get("24").MeasureString("UNTIL\nWE\nFALL").X * 2f) - 24,
 							128),
 						Color.Orange * .25f);
-
-			#region Draw SEED INPUT
-					_spriteBatch.DrawString(
-						Fonts.Get("12"), 
-						$"{_earthSeed}" + " + " + $"{_skySeed}", 
-						new Vector2(
-							(GraphicsDevice.Viewport.Width / 2) + 128, 
-							56), 
-						Color.White * 0.25f);
-				#endregion <-----DRAW SEED INPUT---<<<-
-
-			#region Input
-				seed_Input.Draw(_spriteBatch);
-				worldName_Input.Draw(_spriteBatch);
-				#endregion  <------ INPUT ----<<<-
-
-				if (_mapAccepted)
-				{
-					_spriteBatch.DrawString(
-						Fonts.Get("16"),
-						"MAP ACCEPTED",
-						new Vector2(
-							(GraphicsDevice.Viewport.Width / 2) + 128,
-							GraphicsDevice.Viewport.Height / 2),
-						Color.White * .5f);
-				}
 				_spriteBatch.End();
 
-			#region MAP PREVIEW
-				_mapPreview.Draw(_spriteBatch, Fonts.Get("12"));
-				#endregion <-----MAP PREVIEW---<<<-
-			} // end of Gamestate: CREATION
-			
-			#region Draw CURSOR
-			_spriteBatch.Begin(transformMatrix: _viewMatrix, samplerState: 	SamplerState.PointClamp);
-				// snaps the cursor to tile position...
-				int tileSize = 16; // ..or whatever
-				Vector2 snapped = new Vector2(
-					(int)(mouseWorld.X / tileSize) * tileSize,
-					(int)(mouseWorld.Y / tileSize) * tileSize
-				);
-
-				_spriteBatch.Draw(
-					_pixel, 
-					new Rectangle((int)snapped.X, (int)snapped.Y, tileSize, tileSize), 
-					Color.Yellow * 0.35f
-				);
-
-				DrawLine(snapped, snapped + new Vector2(tileSize, 0), Color.Yellow, 2);
-				DrawLine(snapped, snapped + new Vector2(0, tileSize), Color.Yellow, 2);
-			_spriteBatch.End();
-			#endregion <-----Draw CURSOR---<<<-
-
+			_state.Draw(gameTime);
 			base.Draw(gameTime);
 		}
 
-		private void DrawLine(Vector2 start, Vector2 end, Color color, int thickness)
-		{
-			Vector2 edge = end - start;
-			float angle = (float)System.Math.Atan2(edge.Y, edge.X);
-
-			_spriteBatch.Draw(
-				_pixel,
-				new Rectangle((int)start.X, (int)start.Y, (int)edge.Length(), thickness),
-				null,
-				color,
-				angle,
-				Vector2.Zero,
-				SpriteEffects.None,
-				0
-			);
-		}
-
-		private void OnTextInput(object sender, TextInputEventArgs e)
-		{
-			if (_focusedInput == null) {
-				return;
-			}
-
-			char c = e.Character;
-			if (char.IsControl(c)) {
-				return;
-			}
-
-			if (char.IsLetterOrDigit(c) || c == ' ' || c == '-' || c == '_') {
-				_focusedInput.Append(c);
-			}
-		}
+		
 		
 /// ----------------------------------------------------
 ///-----------///     HERE BE THE BONES OF THE FORGOTTEN     ///

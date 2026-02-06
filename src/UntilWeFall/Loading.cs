@@ -5,12 +5,12 @@ using Microsoft.Xna.Framework.Input;
 
 namespace UntilWeFall
 {
-	public sealed class StartMenu : GameStateBase
+	public sealed class Loading : GameStateBase
 	{
 		private readonly GameContext _ctx;
     		private readonly Action<GameStateID> _changeState;
 
-		public StartMenu(GameContext ctx, Action<GameStateID> changeState)
+		public Loading(GameContext ctx, Action<GameStateID> changeState)
 			: base(ctx, changeState)
 		{
 
