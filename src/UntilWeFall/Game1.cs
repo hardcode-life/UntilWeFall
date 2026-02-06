@@ -104,10 +104,9 @@ namespace UntilWeFall
 
 		protected override void Update(GameTime gameTime)
 		{
-		/*
 			if (Keyboard.GetState().IsKeyDown(Keys.Escape)) {
 				Exit();
-			}*/
+			}
 
 			// TODO: Add your update logic here
 			float dt = (float)gameTime.ElapsedGameTime.TotalSeconds;
