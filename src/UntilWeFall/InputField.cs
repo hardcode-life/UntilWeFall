@@ -2,6 +2,7 @@ using System;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
+using UntilWeFall;
 
 public class InputField
 {
@@ -99,9 +100,12 @@ public class InputField
 			_hovered ? Color.Gray :
 			Color.White;
 
+#region INPUT BACKGROUND COLOR
+		Color inputBG = Hex.convert("#1c242a");
 		if (Background != null) {
-			sb.Draw(Background, Bounds, Color.Orange);
+			sb.Draw(Background, Bounds, inputBG);
 		}
+#endregion
 
 		if (Font == null) return;
 
@@ -111,8 +115,9 @@ public class InputField
 		// Placeholder should be dimmer
         		Color finalColor = showPlaceholder ? (textColor * 0.45f) : textColor;
 
-		// Padding
-        		Vector2 pos = new Vector2(16, 0);
+#region PADDING
+        		Vector2 pos = new Vector2(16, 5);
+#endregion
 
 		if (Font != null)
 		{
@@ -128,7 +133,7 @@ public class InputField
 		{
 			// Put caret at end of current text
 			float w = Font.MeasureString(toShow).X;
-			sb.DrawString(Font, "|", pos + new Vector2(w + 2, 0), finalColor);
+			sb.DrawString(Font, "|", pos + new Vector2(Bounds.X + w + 2, Bounds.Y + 5), finalColor);
 		}
 	}
 

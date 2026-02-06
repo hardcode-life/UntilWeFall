@@ -18,35 +18,36 @@ namespace UntilWeFall
 		}
 		PreviewState _previewState = PreviewState.None;
 
-		#region SEED INPUT
-			private Rectangle seed_Input_bounds;
-			private InputField seed_Input;
+#region SEED INPUT
+		private Rectangle seed_Input_bounds;
+		private InputField seed_Input;
+		private string prevSeed ="default";
+		private int _earthSeed;
+		private int _skySeed;
+		private KeyboardState _kbPrev;
+		//private bool _mapAccepted = false;
+		//private bool _hasPreview = false;
+#endregion <--SEED INPUT------<<<-
 
-			private string prevSeed ="default";
-			private int _earthSeed;
-			private int _skySeed;
-			private KeyboardState _kbPrev;
-			//private bool _mapAccepted = false;
-			//private bool _hasPreview = false;
-		#endregion <--SEED INPUT------<<<-
-
-		#region World Generation - customization
-			private Rectangle worldName_Input_bounds;
-			private InputField worldName_Input;
-		#endregion
+#region World Generation - customization
+		private Rectangle worldName_Input_bounds;
+		private InputField worldName_Input;
+#endregion <---World Generation - customization---<<<-
 		
 		private MapPreview _mapPreview = new MapPreview();
 		
-		#region CAMERA 2D
+#region CAMERA 2D
 		private Camera2D _camera;
 		private MouseState _mousePrev;
-
 		//private float _panSpeed = 800f;
 		//private float _zoomStep = 0.10f;
-
 		private Matrix _viewMatrix;
 		private Vector2 mouseWorld;
-		#endregion <--CAMERA 2D------<<<-
+#endregion <--CAMERA 2D------<<<-
+		
+		private float keyRepeatTimer = 0f;
+		private const float InitialDelay = 0.4f;
+		private const float RepeatRate = 0.05f;
 
 		private bool _requestLoading;
 
@@ -63,40 +64,40 @@ namespace UntilWeFall
 
 			_camera = new Camera2D(CTX.GraphicsDevice.Viewport.Width, CTX.GraphicsDevice.Viewport.Height);
 
-			#region MAP PREVIEW ORIGIN
+#region MAP PREVIEW ORIGIN
 			_mapPreview.SetPreview(new Vector2(
 				CTX.GraphicsDevice.Viewport.Width - (12 * 64) - 12,
 				80
 			)); // set preview ORIGIN.
-			#endregion
+#endregion <---MAP PREVIEW ORIGIN--<<<-
 			
-			#region INPUT FIELDS
+#region INPUT FIELDS
 			worldName_Input_bounds = new Rectangle(
-				0, 
-				0, 
-				500, 
-				24);
+				(CTX.GraphicsDevice.Viewport.Width / 2) + 32, 
+				112, 
+				450, 
+				32);
 			worldName_Input = new InputField(
 				worldName_Input_bounds,
 				"What do you name this land?",
 				Fonts.Get("16"),
 				() => worldName_Input.Clear(),
 				CTX.pixel,
-				Color.Black);
+				Color.White);
 
 			seed_Input_bounds = new Rectangle(
 				(CTX.GraphicsDevice.Viewport.Width / 2) + 80, 
 				24,
 				1200,
-				24);
+				32);
 			seed_Input = new InputField(
 				seed_Input_bounds,
 				"Enter seed . . .",
 				Fonts.Get("16"),
 				() => seed_Input.Clear(),
 				CTX.pixel,
-				Color.Black);
-			#endregion
+				Color.White);
+#endregion <------INPUT FIELDS--<<<-
 		}
 
 		public override void Exit()
@@ -136,6 +137,16 @@ namespace UntilWeFall
 			if (kb.IsKeyDown(Keys.Back) && !_kbPrev.IsKeyDown(Keys.Back))
 			{
 				_focusedInput?.Backspace();
+				keyRepeatTimer = InitialDelay;
+			}
+			else if (kb.IsKeyDown(Keys.Back) && _kbPrev.IsKeyDown(Keys.Back))
+			{
+				keyRepeatTimer -= (float)gameTime.ElapsedGameTime.TotalSeconds;
+				if (keyRepeatTimer <= 0)
+				{
+					_focusedInput?.Backspace();
+					keyRepeatTimer = RepeatRate;
+				}
 			}
 			
 			HandleSeedCommit(kb);
@@ -154,7 +165,7 @@ namespace UntilWeFall
 
 		private void HandleSeedCommit(KeyboardState kb)
 		{
-			#region Commit Seed
+#region Commit Seed
 			bool seedFocused = _focusedInput == seed_Input;
 
 			// Enter = commit seed / accept map
@@ -207,7 +218,7 @@ namespace UntilWeFall
 				}
 			}
 			_kbPrev = kb;
-			#endregion
+#endregion <----Commit Seed------<<<-
 
 		}
 
@@ -216,20 +227,20 @@ namespace UntilWeFall
 			var _spriteBatch = CTX.SpriteBatch;
 			_spriteBatch.Begin(samplerState: SamplerState.PointClamp);
 
-			#region Draw SEED INPUT
+#region Draw SEED INPUT
 			_spriteBatch.DrawString(
 				Fonts.Get("12"), 
 				$"{_earthSeed}" + " + " + $"{_skySeed}", 
 				new Vector2(
-					(CTX.GraphicsDevice.Viewport.Width / 2) + 128, 
-					56), 
+					(CTX.GraphicsDevice.Viewport.Width / 2) + 96, 
+					64), 
 				Color.White * 0.25f);
-			#endregion <-----DRAW SEED INPUT---<<<-
+#endregion <-----DRAW SEED INPUT---<<<-
 
-			#region Input
+#region Input
 			seed_Input.Draw(_spriteBatch);
 			worldName_Input.Draw(_spriteBatch);
-			#endregion  <------ INPUT ----<<<-
+#endregion  <------ INPUT ----<<<-
 
 			if (_previewState == PreviewState.Accepted)
 			{
@@ -243,10 +254,10 @@ namespace UntilWeFall
 				//ChangeState(GameStateID.Loading);
 			}
 			_spriteBatch.End();
-			
-			#region MAP PREVIEW
+
+#region MAP PREVIEW
 			_mapPreview.Draw(_spriteBatch, Fonts.Get("12"));
-			#endregion <-----MAP PREVIEW---<<<-
+#endregion <-----MAP PREVIEW---<<<-
 
 			_spriteBatch.Begin(
 				transformMatrix: _viewMatrix, samplerState: SamplerState.PointClamp);
@@ -256,9 +267,9 @@ namespace UntilWeFall
 			_spriteBatch.End();
 		}
 
+#region Draw CURSOR
 		private void DrawCursor(SpriteBatch sb)
 		{
-			#region Draw CURSOR
 			// snaps the cursor to tile position...
 			int tileSize = 16; // ..or whatever
 
@@ -276,8 +287,8 @@ namespace UntilWeFall
 			DrawLine(sb, snapped, snapped + new Vector2(tileSize, 0), Color.Yellow, 2);
 			
 			DrawLine(sb, snapped, snapped + new Vector2(0, tileSize), Color.Yellow, 2);
-			#endregion <-----Draw CURSOR---<<<-
 		}
+#endregion <-----Draw CURSOR---<<<-
 
 		private void DrawLine(SpriteBatch sb, Vector2 start, Vector2 end, Color color, int thickness)
 		{

@@ -243,12 +243,12 @@ namespace UntilWeFall
 					if (sx >= 0 && sx < PreviewW && sy >= 0 && sy < PreviewH)
 					{
 						sb.DrawString(
-							font,
+							Fonts.Get("16"),
 							"@",
 							_origin + new Vector2(
 								sx * _cellW, 
 								sy * _cellH),
-							Color.Yellow
+							Color.Orange
 						);
 					}
 				}	

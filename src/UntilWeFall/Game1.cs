@@ -3,7 +3,6 @@ using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 //using System.Globalization;
 using System.Runtime.InteropServices;
-
 using System;
 using System.Collections.Generic;
 
@@ -23,17 +22,15 @@ namespace UntilWeFall
 ///-----------///     WARNING! HEATHENS AHEAD!!!     ///
 /// --------------------------------------------
 
-		#region CAMERA 2D
-			private Camera2D _camera;
-			private MouseState _mousePrev;
+#region CAMERA 2D
+		private Camera2D _camera;
+		private MouseState _mousePrev;
+		private float _panSpeed = 800f;
+		private float _zoomStep = 0.10f;
 
-			private float _panSpeed = 800f;
-			private float _zoomStep = 0.10f;
-
-			public Matrix _viewMatrix;
-			private Vector2 mouseWorld;
-		#endregion <--CAMERA 2D------<<<-
-
+		//public Matrix _viewMatrix;
+		//private Vector2 mouseWorld;
+#endregion <--CAMERA 2D------<<<-
 
 		public Game1()
 		{
@@ -162,8 +159,7 @@ namespace UntilWeFall
 						new Vector2(mouse.X, mouse.Y), 
 						zoomFactor);
 				}
-			
-			
+				
 			_state.Update(gameTime);
 			base.Update(gameTime);
 		}
