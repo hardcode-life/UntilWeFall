@@ -7,11 +7,16 @@ namespace UntilWeFall
 {
 	public sealed class MapPreview
 	{
-		private const int PreviewW = 64;
-		private const int PreviewH = 64;
+		private int ScreenWidth;
+		private int ScreenHeight;
+		public int PreviewW = 64;
+		public int PreviewH = 128;
+		private static int previewWidth = 64;
+		private static int previewHeight = 128;
 
-		private readonly int[,] _digits = new int[PreviewW, PreviewH];
-		private readonly int[,] _glyphNoise = new int[PreviewW, PreviewH];
+		private int[,] _digits;
+		private int[,] _glyphNoise;
+
 
 		private bool _seeded;
 		private int _earthSeed;
@@ -24,8 +29,8 @@ namespace UntilWeFall
 		private Random _rng = new Random(1);
 
 		// layout
-		private int _cellW = 12;
-		private int _cellH = 12;
+		public int _cellW = 12;
+		public int _cellH = 12;
 		private Vector2 _origin;
 
 		public bool Seeded => _seeded;
@@ -35,8 +40,13 @@ namespace UntilWeFall
 
 		public void SetPreview(
 			Vector2 origin, 
+			int screenWidth,
+			int screenHeight,
 			int? cellW = null, 
-			int? cellH = null)
+			int? cellH = null,
+			int marginRight = 12,
+			int marginTop = 80,
+			int marginBottom = 60)
 		{
 			_origin = origin;
 			
@@ -49,7 +59,33 @@ namespace UntilWeFall
 			{
 				_cellH = cellH.Value;
 			}
+
+			ScreenWidth = screenWidth;
+			ScreenHeight = screenHeight;
+
+			// Width/height in cells that fit on-screen (with a little margin for label)
+			int maxW = (screenWidth - marginRight) / _cellW;
+			int maxH = (screenHeight - marginTop - marginBottom) / _cellH;
+
+			// so it doesnt go insane on 4k
+			PreviewW = Math.Clamp(maxW, 16, 256);
+			PreviewH = Math.Clamp(maxH, 16, 256);
+
+			_digits = new int[PreviewW, PreviewH];
+    			_glyphNoise = new int[PreviewW, PreviewH];
+
+			EnsureBuffers();
 		}
+
+		private void EnsureBuffers()
+		{
+			if (_digits == null || _digits.GetLength(0) != PreviewW || _digits.GetLength(1) != PreviewH)
+			{
+				_digits = new int[PreviewW, PreviewH];
+				_glyphNoise = new int[PreviewW, PreviewH];
+			}
+		}
+
 
 		public void Regenerate(
 			int earthSeed,
@@ -258,7 +294,7 @@ namespace UntilWeFall
 					$"Landfall : {_previewLabel}", 
 					_origin + new Vector2(
 						32, 
-						(PreviewH * _cellH) + 8), 
+						(PreviewH * _cellH) + 8),
 					Color.White);
 
 			sb.End();

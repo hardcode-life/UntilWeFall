@@ -64,14 +64,41 @@ namespace UntilWeFall
 
 			_camera = new Camera2D(CTX.GraphicsDevice.Viewport.Width, CTX.GraphicsDevice.Viewport.Height);
 
-#region MAP PREVIEW ORIGIN
-			_mapPreview.SetPreview(new Vector2(
-				CTX.GraphicsDevice.Viewport.Width - (12 * 64) - 12,
-				80
-			)); // set preview ORIGIN.
+#region MAP PREVIEW DIMENSIONS
+			/*_mapPreview.SetPreview(
+				new Vector2(12, 80),
+				screenWidth: CTX.GraphicsDevice.Viewport.Width,
+    				screenHeight: CTX.GraphicsDevice.Viewport.Height,
+				cellW: 12,
+				cellH: 12); */
+			_mapPreview.SetPreview(
+				new Vector2((Textures.Get("mainLogo").Width/4) + 16, 0), //starting point
+				screenWidth: (CTX.GraphicsDevice.Viewport.Width / 2) - 320, // width
+    				screenHeight: CTX.GraphicsDevice.Viewport.Height, // height
+				cellW: 12, //character width and height
+				cellH: 12);
+			// set preview dimensions.
 #endregion <---MAP PREVIEW ORIGIN--<<<-
 			
 #region INPUT FIELDS
+			seed_Input_bounds = new Rectangle(
+				//CTX.GraphicsDevice.Viewport.Width / 2, 
+				(_mapPreview.PreviewW * _mapPreview._cellW) 
+					+ (Textures.Get("mainLogo").Width/4) 
+					+ 32,
+				16,
+				(CTX.GraphicsDevice.Viewport.Width / 2)
+					+ (Textures.Get("mainLogo").Width/4) 
+					+ 80,
+				32);
+			seed_Input = new InputField(
+				seed_Input_bounds,
+				"Enter seed . . .",
+				Fonts.Get("16"),
+				() => seed_Input.Clear(),
+				CTX.pixel,
+				Color.White);
+
 			worldName_Input_bounds = new Rectangle(
 				(CTX.GraphicsDevice.Viewport.Width / 2) + 32, 
 				112, 
@@ -82,19 +109,6 @@ namespace UntilWeFall
 				"What do you name this land?",
 				Fonts.Get("16"),
 				() => worldName_Input.Clear(),
-				CTX.pixel,
-				Color.White);
-
-			seed_Input_bounds = new Rectangle(
-				(CTX.GraphicsDevice.Viewport.Width / 2) + 80, 
-				24,
-				1200,
-				32);
-			seed_Input = new InputField(
-				seed_Input_bounds,
-				"Enter seed . . .",
-				Fonts.Get("16"),
-				() => seed_Input.Clear(),
 				CTX.pixel,
 				Color.White);
 #endregion <------INPUT FIELDS--<<<-

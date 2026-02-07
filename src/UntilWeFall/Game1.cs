@@ -106,61 +106,8 @@ namespace UntilWeFall
 			}
 
 			// TODO: Add your update logic here
-			float dt = (float)gameTime.ElapsedGameTime.TotalSeconds;
-
-			var kb = Keyboard.GetState();
-			var mouse = Mouse.GetState();
-
-				int w = GraphicsDevice.Viewport.Width;
-				int h = GraphicsDevice.Viewport.Height;
-				if (w != _camera.ViewportWidth || h != _camera.ViewportHeight)
-				{
-					_camera.SetViewportSize(w, h);
-				}
-
-				Vector2 move = Vector2.Zero;
-				// camera PAN
-				if (kb.IsKeyDown(Keys.W) || kb.IsKeyDown(Keys.Up))
-					move.Y -= 1;
-
-				if (kb.IsKeyDown(Keys.S) || kb.IsKeyDown(Keys.Down))
-					move.Y += 1;
-
-				if (kb.IsKeyDown(Keys.A) || kb.IsKeyDown(Keys.Left))
-					move.X -= 1;
-
-				if (kb.IsKeyDown(Keys.D) || kb.IsKeyDown(Keys.Right))
-					move.X += 1;
-				
-				if (move != Vector2.Zero) {
-					move.Normalize();
-					float speed = _panSpeed / _camera.Zoom; // camera movement slows when zoomed in, relative to how close you're zoomed in.
-					_camera.Pan( move * speed * dt);
-				}
-
-				int wheelDelta = mouse.ScrollWheelValue - _mousePrev.ScrollWheelValue;
-				if (wheelDelta != 0)
-				{
-					int notches = wheelDelta / 120; // typically ±1
-					float zoomFactor = 1f;
-
-					if (notches > 0) {
-						for (int i = 0; i < notches; i++) {
-							zoomFactor *= (1f + _zoomStep);
-						}
-					}
-					else {
-						for (int i = 0; i < -notches; i++) {
-							zoomFactor *= (1f - _zoomStep);
-						}
-					}
-
-					_camera.ZoomAtScreenPoint(
-						new Vector2(mouse.X, mouse.Y), 
-						zoomFactor);
-				}
-				
-			_state.Update(gameTime);
+			CameraControls(gameTime);
+			
 			base.Update(gameTime);
 		}
 
@@ -171,33 +118,94 @@ namespace UntilWeFall
 			// TODO: Add your drawing code here
 
 				_spriteBatch.Begin();
-					/*_spriteBatch.Draw( // test background
-						testBackground,
-						new Rectangle(0, 0, 2560, 1440), 
-						Color.White * 0.1f);*/
+				/*_spriteBatch.Draw( // test background
+					testBackground,
+					new Rectangle(0, 0, 2560, 1440), 
+					Color.White * 0.1f);*/
 
-					_spriteBatch.Draw( // LOGO
-						mainLogo,
-						new Rectangle(
-							(GraphicsDevice.Viewport.Width / 2) - (mainLogo.Width / 2), 
-							64, 
-							mainLogo.Width / 2, 
-							mainLogo.Height / 2), 
-						Hex.convert("#ffffff") * 0.08f);
-					_spriteBatch.DrawString(
-						Fonts.Get("24"), 
-						"UNTIL\nWE\nFALL",
-						new Vector2(
-							(GraphicsDevice.Viewport.Width / 2) - (Fonts.Get("24").MeasureString("UNTIL\nWE\nFALL").X * 2f) - 24,
-							128),
-						Color.Orange * .25f);
+				_spriteBatch.Draw( // LOGO
+					mainLogo,
+					new Rectangle(
+						//(GraphicsDevice.Viewport.Width / 2) - (mainLogo.Width / 2), 
+						8,
+						(int)Fonts.Get("32").MeasureString("UNTIL\nWE\nFALL").Y, 
+						mainLogo.Width / 4, 
+						mainLogo.Height /4), 
+					Hex.convert("#ffffff") * 0.08f);
+				_spriteBatch.DrawString(
+					Fonts.Get("32"), 
+					"UNTIL\nWE\nFALL",
+					new Vector2(
+						//(GraphicsDevice.Viewport.Width / 2) - (Fonts.Get("24").MeasureString("UNTIL\nWE\nFALL").X * 2f) - 24,
+						8,
+						8),
+					Color.Orange * .25f);
 				_spriteBatch.End();
 
 			_state.Draw(gameTime);
 			base.Draw(gameTime);
 		}
+/// -----------------------------------------------------------
+///-----------///     ABANDON HOPE, ALL YE WHO ENTER HERE     (ಥ﹏ಥ)
+/// -----------------------------------------------------------
+		void CameraControls(GameTime g)
+		{
+			float dt = (float)g.ElapsedGameTime.TotalSeconds;
 
-		
+			var kb = Keyboard.GetState();
+			var mouse = Mouse.GetState();
+
+			int w = GraphicsDevice.Viewport.Width;
+			int h = GraphicsDevice.Viewport.Height;
+			if (w != _camera.ViewportWidth || h != _camera.ViewportHeight)
+			{
+				_camera.SetViewportSize(w, h);
+			}
+
+			Vector2 move = Vector2.Zero;
+			// camera PAN
+			if (kb.IsKeyDown(Keys.W) || kb.IsKeyDown(Keys.Up))
+				move.Y -= 1;
+
+			if (kb.IsKeyDown(Keys.S) || kb.IsKeyDown(Keys.Down))
+				move.Y += 1;
+
+			if (kb.IsKeyDown(Keys.A) || kb.IsKeyDown(Keys.Left))
+				move.X -= 1;
+
+			if (kb.IsKeyDown(Keys.D) || kb.IsKeyDown(Keys.Right))
+				move.X += 1;
+			
+			if (move != Vector2.Zero) {
+				move.Normalize();
+				float speed = _panSpeed / _camera.Zoom; // camera movement slows when zoomed in, relative to how close you're zoomed in.
+				_camera.Pan( move * speed * dt);
+			}
+
+			int wheelDelta = mouse.ScrollWheelValue - _mousePrev.ScrollWheelValue;
+			if (wheelDelta != 0)
+			{
+				int notches = wheelDelta / 120; // typically ±1
+				float zoomFactor = 1f;
+
+				if (notches > 0) {
+					for (int i = 0; i < notches; i++) {
+						zoomFactor *= (1f + _zoomStep);
+					}
+				}
+				else {
+					for (int i = 0; i < -notches; i++) {
+						zoomFactor *= (1f - _zoomStep);
+					}
+				}
+
+				_camera.ZoomAtScreenPoint(
+					new Vector2(mouse.X, mouse.Y), 
+					zoomFactor);
+			}
+				
+			_state.Update(g);
+		}
 		
 /// ----------------------------------------------------
 ///-----------///     HERE BE THE BONES OF THE FORGOTTEN     ///
