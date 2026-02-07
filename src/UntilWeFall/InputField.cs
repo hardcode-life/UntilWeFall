@@ -27,6 +27,7 @@ public class InputField
 	public Action? OnBlur;
 
 	public int MaxLength = 128;
+	public void SetBounds(Rectangle r) => Bounds = r;
 
 	public InputField(
 		Rectangle bounds, 

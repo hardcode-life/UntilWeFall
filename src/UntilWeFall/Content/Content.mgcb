@@ -41,6 +41,13 @@
 /processorParam:TextureFormat=Compressed
 /build:font/rs_32.spritefont
 
+#begin font/rs_ex.spritefont
+/importer:FontDescriptionImporter
+/processor:FontDescriptionProcessor
+/processorParam:PremultiplyAlpha=True
+/processorParam:TextureFormat=Compressed
+/build:font/rs_ex.spritefont
+
 #begin sprites/2560x1440 test.png
 /importer:TextureImporter
 /processor:TextureProcessor

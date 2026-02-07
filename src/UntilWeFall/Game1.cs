@@ -128,18 +128,18 @@ namespace UntilWeFall
 					new Rectangle(
 						//(GraphicsDevice.Viewport.Width / 2) - (mainLogo.Width / 2), 
 						8,
-						(int)Fonts.Get("32").MeasureString("UNTIL\nWE\nFALL").Y, 
+						(int)Fonts.Get("32").MeasureString("UNTIL\nWE\nFALL").Y + 32, 
 						mainLogo.Width / 4, 
 						mainLogo.Height /4), 
-					Hex.convert("#ffffff") * 0.08f);
+					Color.DarkGray * 0.25f);
 				_spriteBatch.DrawString(
-					Fonts.Get("32"), 
-					"UNTIL\nWE\nFALL",
+					Fonts.Get("ex"), 
+					"UNTIL\n    WE\nFALL",
 					new Vector2(
 						//(GraphicsDevice.Viewport.Width / 2) - (Fonts.Get("24").MeasureString("UNTIL\nWE\nFALL").X * 2f) - 24,
 						8,
 						8),
-					Color.Orange * .25f);
+					Color.Orange * .50f);
 				_spriteBatch.End();
 
 			_state.Draw(gameTime);

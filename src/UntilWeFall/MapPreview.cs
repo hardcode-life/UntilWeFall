@@ -7,12 +7,12 @@ namespace UntilWeFall
 {
 	public sealed class MapPreview
 	{
-		private int ScreenWidth;
-		private int ScreenHeight;
+		//private int ScreenWidth;
+		//private int ScreenHeight;
 		public int PreviewW = 64;
 		public int PreviewH = 128;
-		private static int previewWidth = 64;
-		private static int previewHeight = 128;
+		//private static int previewWidth = 64;
+		//private static int previewHeight = 128;
 
 		private int[,] _digits;
 		private int[,] _glyphNoise;
@@ -38,42 +38,32 @@ namespace UntilWeFall
 		public Point PreviewStart => _previewStart;
 		public Point SpawnTile => _spawnTile;
 
+		public int CellW => _cellW;
+		public int CellH => _cellH;
+		public int PreviewWCells => PreviewW;
+		public int PreviewHCells => PreviewH;
+		public int PixelWidth => PreviewW * _cellW;
+		public int PixelHeight => PreviewH * _cellH;
+		public Vector2 Origin => _origin;
+
+
 		public void SetPreview(
 			Vector2 origin, 
-			int screenWidth,
-			int screenHeight,
-			int? cellW = null, 
-			int? cellH = null,
-			int marginRight = 12,
-			int marginTop = 80,
-			int marginBottom = 60)
+			int areaWpx, 
+			int areaHpx, 
+			int cellW = 12, 
+			int cellH = 12)
 		{
 			_origin = origin;
-			
-			if (cellW.HasValue)
-			{
-				_cellW = cellW.Value;
-			}
-
-			if (cellH.HasValue)
-			{
-				_cellH = cellH.Value;
-			}
-
-			ScreenWidth = screenWidth;
-			ScreenHeight = screenHeight;
-
-			// Width/height in cells that fit on-screen (with a little margin for label)
-			int maxW = (screenWidth - marginRight) / _cellW;
-			int maxH = (screenHeight - marginTop - marginBottom) / _cellH;
+			_cellW = cellW;
+			_cellH = cellH;
 
 			// so it doesnt go insane on 4k
-			PreviewW = Math.Clamp(maxW, 16, 256);
-			PreviewH = Math.Clamp(maxH, 16, 256);
+			PreviewW = Math.Clamp(areaWpx / _cellW, 16, 256);
+			PreviewH = Math.Clamp(areaHpx / _cellH, 16, 256);
 
-			_digits = new int[PreviewW, PreviewH];
-    			_glyphNoise = new int[PreviewW, PreviewH];
-
+			//_digits = new int[PreviewW, PreviewH];
+    			//_glyphNoise = new int[PreviewW, PreviewH];
 			EnsureBuffers();
 		}
 
@@ -288,14 +278,15 @@ namespace UntilWeFall
 						);
 					}
 				}	
+
 				// label (draw once)
-				sb.DrawString(
+				/*sb.DrawString(
 					Fonts.Get("16"), 
 					$"Landfall : {_previewLabel}", 
 					_origin + new Vector2(
 						32, 
 						(PreviewH * _cellH) + 8),
-					Color.White);
+					Color.White);*/
 
 			sb.End();
 			

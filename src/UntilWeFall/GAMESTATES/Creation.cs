@@ -51,6 +51,20 @@ namespace UntilWeFall
 
 		private bool _requestLoading;
 
+		const int LeftPad = 24;
+		const int TopPad = 80;
+		const int RightPanelPad = 32;
+		const int RightPanelWidthMin = 520;
+		private int _lastW = -1;
+		private int _lastH = -1;
+
+		private Rectangle _rightPanelRect;
+		private Vector2 _seedPos;
+		private Vector2 _worldNamePos;
+		const int PreviewTopPad = 0;
+		const int PreviewBottomPad = 80; // label + breathing room
+
+
 		public Creation(GameContext ctx, Action<GameStateID> changeState) : base(ctx, changeState)
 		{
 			/* spiders ahead
@@ -61,58 +75,102 @@ namespace UntilWeFall
 		public override void Enter()
 		{
 			CTX.Game.Window.TextInput += OnTextInput;
-
 			_camera = new Camera2D(CTX.GraphicsDevice.Viewport.Width, CTX.GraphicsDevice.Viewport.Height);
 
-#region MAP PREVIEW DIMENSIONS
-			/*_mapPreview.SetPreview(
-				new Vector2(12, 80),
-				screenWidth: CTX.GraphicsDevice.Viewport.Width,
-    				screenHeight: CTX.GraphicsDevice.Viewport.Height,
-				cellW: 12,
-				cellH: 12); */
+			int w = CTX.GraphicsDevice.Viewport.Width;
+			int h = CTX.GraphicsDevice.Viewport.Height;
+
+			_lastW = w;
+			_lastH = h;
+			ReflowLayout(w, h);
+
+			_focusedInput = seed_Input;
+			seed_Input.Focus();
+		}
+
+
+		private void ReflowLayout(int w, int h)
+		{
+			bool wasSeedFocused = _focusedInput == seed_Input;
+			bool wasWorldFocused = _focusedInput == worldName_Input;
+
+			int logoLaneW = (Textures.Get("mainLogo").Width / 4) + 16; // your logo draw uses /4 scale
+			int leftGutter = LeftPad + logoLaneW - 24;
+
+			int rightPanelW = Math.Max(RightPanelWidthMin, w / 2);
+			int previewAreaW = w - rightPanelW - leftGutter - RightPanelPad;
+
+			int cellW = 12;
+			int cellH = 12;
+
+			int previewWcells = Math.Clamp(previewAreaW / cellW, 16, 256);
+
+#region BOTTOM PADDING
+			// label space should be based on font, not vibes 😤
+			int labelH = Fonts.Get("16").LineSpacing + 12;
+			//int previewAreaH = h - PreviewTopPad - labelH - 80;
+			int previewAreaH = h
+				- PreviewTopPad
+				- labelH
+				- PreviewBottomPad;
+
+#endregion <-----BOTTOM PADDING----<<<-
+
 			_mapPreview.SetPreview(
-				new Vector2((Textures.Get("mainLogo").Width/4) + 16, 0), //starting point
-				screenWidth: (CTX.GraphicsDevice.Viewport.Width / 2) - 320, // width
-    				screenHeight: CTX.GraphicsDevice.Viewport.Height, // height
-				cellW: 12, //character width and height
-				cellH: 12);
-			// set preview dimensions.
-#endregion <---MAP PREVIEW ORIGIN--<<<-
-			
-#region INPUT FIELDS
+				origin: new Vector2(leftGutter, PreviewTopPad),
+				areaWpx: previewWcells * cellW,
+				areaHpx: previewAreaH,
+				cellW: cellW,
+				cellH: cellH
+			);
+
+			int rightX = leftGutter  + _mapPreview.PixelWidth + RightPanelPad;
+			_rightPanelRect = new Rectangle(rightX, 0, w - rightX, h);
+
+#region INPUT FIELD BACKGROUND
+			// Input bounds anchored to right panel
 			seed_Input_bounds = new Rectangle(
-				//CTX.GraphicsDevice.Viewport.Width / 2, 
-				(_mapPreview.PreviewW * _mapPreview._cellW) 
-					+ (Textures.Get("mainLogo").Width/4) 
-					+ 32,
+				_rightPanelRect.X - 16,
 				16,
-				(CTX.GraphicsDevice.Viewport.Width / 2)
-					+ (Textures.Get("mainLogo").Width/4) 
-					+ 80,
-				32);
+				_rightPanelRect.Width,
+				32
+			);
+
+			worldName_Input_bounds = new Rectangle(
+				_rightPanelRect.X + 64,
+				112,
+				450,
+				32
+			);
+#endregion <------INPUT FIELD BACKGROUND-------<<<-
+
+			// Recreate or update InputFields (depends on your class design)
 			seed_Input = new InputField(
 				seed_Input_bounds,
 				"Enter seed . . .",
 				Fonts.Get("16"),
 				() => seed_Input.Clear(),
 				CTX.pixel,
-				Color.White);
+				Color.White
+			);
 
-			worldName_Input_bounds = new Rectangle(
-				(CTX.GraphicsDevice.Viewport.Width / 2) + 32, 
-				112, 
-				450, 
-				32);
 			worldName_Input = new InputField(
 				worldName_Input_bounds,
 				"What do you name this land?",
 				Fonts.Get("16"),
 				() => worldName_Input.Clear(),
 				CTX.pixel,
-				Color.White);
-#endregion <------INPUT FIELDS--<<<-
+				Color.White
+			);
+
+			if (wasSeedFocused) { _focusedInput = seed_Input; seed_Input.Focus(); }
+			else if (wasWorldFocused) { _focusedInput = worldName_Input; worldName_Input.Focus(); }
+			else { _focusedInput = null; }
+
+			//seed_Input.Bounds = seed_Input_bounds;
+			//worldName_Input.Bounds = worldName_Input_bounds;
 		}
+
 
 		public override void Exit()
 		{
@@ -175,6 +233,16 @@ namespace UntilWeFall
 			if (_requestLoading) {
 				ChangeState(GameStateID.Loading);
 			}
+
+			int w = CTX.GraphicsDevice.Viewport.Width;
+			int h = CTX.GraphicsDevice.Viewport.Height;
+			if (w != _lastW || h != _lastH)
+			{
+				_lastW = w;
+				_lastH = h;
+				ReflowLayout(w, h);
+			}
+
 		}
 
 		private void HandleSeedCommit(KeyboardState kb)
@@ -241,12 +309,12 @@ namespace UntilWeFall
 			var _spriteBatch = CTX.SpriteBatch;
 			_spriteBatch.Begin(samplerState: SamplerState.PointClamp);
 
-#region Draw SEED INPUT
+#region Earth and Sky seeds
 			_spriteBatch.DrawString(
 				Fonts.Get("12"), 
 				$"{_earthSeed}" + " + " + $"{_skySeed}", 
 				new Vector2(
-					(CTX.GraphicsDevice.Viewport.Width / 2) + 96, 
+					_rightPanelRect.X , 
 					64), 
 				Color.White * 0.25f);
 #endregion <-----DRAW SEED INPUT---<<<-
@@ -267,10 +335,19 @@ namespace UntilWeFall
 					Color.White * .5f);
 				//ChangeState(GameStateID.Loading);
 			}
+#region LANDFALL
+			_spriteBatch.DrawString(
+				Fonts.Get("24"),
+				$"Landfall : {_mapPreview.PreviewLabel}",
+				_mapPreview.Origin
+				+ new Vector2(32, _mapPreview.PixelHeight + 8),
+				Color.Orange * 0.5F);
 			_spriteBatch.End();
+#endregion <----LANDFALL--------<<<-
 
 #region MAP PREVIEW
 			_mapPreview.Draw(_spriteBatch, Fonts.Get("12"));
+
 #endregion <-----MAP PREVIEW---<<<-
 
 			_spriteBatch.Begin(
