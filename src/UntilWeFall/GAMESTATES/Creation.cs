@@ -21,7 +21,7 @@ namespace UntilWeFall
 #region SEED INPUT
 		private Rectangle seed_Input_bounds;
 		private InputField seed_Input;
-		private string prevSeed ="default";
+		private string prevSeed = null;
 		private int _earthSeed;
 		private int _skySeed;
 		private KeyboardState _kbPrev;
@@ -29,10 +29,13 @@ namespace UntilWeFall
 		//private bool _hasPreview = false;
 #endregion <--SEED INPUT------<<<-
 
-#region World Generation - customization
+#region WORLD CUSTOMIZATION
 		private Rectangle worldName_Input_bounds;
 		private InputField worldName_Input;
-#endregion <---World Generation - customization---<<<-
+
+		private Rectangle tribeName_Input_bounds;
+		private InputField tribeName_Input;
+#endregion <---WORLD CUSTOMIZATION---<<<-
 		
 		private MapPreview _mapPreview = new MapPreview();
 		
@@ -64,7 +67,6 @@ namespace UntilWeFall
 		const int PreviewTopPad = 0;
 		const int PreviewBottomPad = 80; // label + breathing room
 
-
 		public Creation(GameContext ctx, Action<GameStateID> changeState) : base(ctx, changeState)
 		{
 			/* spiders ahead
@@ -91,10 +93,17 @@ namespace UntilWeFall
 
 		private void ReflowLayout(int w, int h)
 		{
+			string seedText = seed_Input?.Value ?? "";
+			string worldText = worldName_Input?.Value ?? "";
+			string tribeText = tribeName_Input?.Value ?? "";
+
+#region FOCUS
 			bool wasSeedFocused = _focusedInput == seed_Input;
 			bool wasWorldFocused = _focusedInput == worldName_Input;
+			bool wasTribeFocused = _focusedInput == tribeName_Input;
+#endregion <----FOCUS---<<<-
 
-			int logoLaneW = (Textures.Get("mainLogo").Width / 4) + 16; // your logo draw uses /4 scale
+			int logoLaneW = (Textures.Get("mainLogo").Width / 4) + 16;
 			int leftGutter = LeftPad + logoLaneW - 24;
 
 			int rightPanelW = Math.Max(RightPanelWidthMin, w / 2);
@@ -113,9 +122,9 @@ namespace UntilWeFall
 				- PreviewTopPad
 				- labelH
 				- PreviewBottomPad;
-
 #endregion <-----BOTTOM PADDING----<<<-
 
+#region SET MAP PREVIEW
 			_mapPreview.SetPreview(
 				origin: new Vector2(leftGutter, PreviewTopPad),
 				areaWpx: previewWcells * cellW,
@@ -123,7 +132,8 @@ namespace UntilWeFall
 				cellW: cellW,
 				cellH: cellH
 			);
-
+#endregion <-------SET MAP PREVIEW-------<<<-
+			
 			int rightX = leftGutter  + _mapPreview.PixelWidth + RightPanelPad;
 			_rightPanelRect = new Rectangle(rightX, 0, w - rightX, h);
 
@@ -132,13 +142,20 @@ namespace UntilWeFall
 			seed_Input_bounds = new Rectangle(
 				_rightPanelRect.X - 16,
 				16,
-				_rightPanelRect.Width,
+				_rightPanelRect.Width + 16,
 				32
 			);
 
 			worldName_Input_bounds = new Rectangle(
-				_rightPanelRect.X + 64,
+				_rightPanelRect.X + 32,
 				112,
+				450,
+				32
+			);
+			
+			tribeName_Input_bounds = new Rectangle(
+				_rightPanelRect.X + 32,
+				160,
 				450,
 				32
 			);
@@ -163,12 +180,47 @@ namespace UntilWeFall
 				Color.White
 			);
 
-			if (wasSeedFocused) { _focusedInput = seed_Input; seed_Input.Focus(); }
-			else if (wasWorldFocused) { _focusedInput = worldName_Input; worldName_Input.Focus(); }
+			tribeName_Input = new InputField(
+				tribeName_Input_bounds,
+				"What do you name this people?",
+				Fonts.Get("16"),
+				() => tribeName_Input.Clear(),
+				CTX.pixel,
+				Color.White
+			);
+
+			if (wasSeedFocused) 
+			{ 
+				_focusedInput = seed_Input; 
+				seed_Input.Focus(); 
+			}
+			else if (wasWorldFocused) 
+			{ 
+				_focusedInput = worldName_Input; 
+				worldName_Input.Focus(); 
+			}
+			else if (wasTribeFocused)
+			{
+				_focusedInput = tribeName_Input;
+				tribeName_Input.Focus();
+			}
 			else { _focusedInput = null; }
 
 			//seed_Input.Bounds = seed_Input_bounds;
 			//worldName_Input.Bounds = worldName_Input_bounds;
+			/*
+			seed_Input.SetValue(seedText);
+			seed_Input.SetPlaceholder("Enter seed . . .");
+			
+			worldName_Input.SetValue(worldText);
+			worldName_Input.SetPlaceholder("What do you name this world?");
+
+			tribeName_Input.SetValue(tribeText);
+			tribeName_Input.SetPlaceholder("What do you name this people?");
+			*/
+			seed_Input.WithValue(seedText).WithPlaceholder("Enter seed . . .");
+			worldName_Input.WithValue(worldText).WithPlaceholder("What do you name this world?");
+			tribeName_Input.WithValue(tribeText).WithPlaceholder("What do you name this people?");
 		}
 
 
@@ -190,6 +242,7 @@ namespace UntilWeFall
 				InputField? next =
 					seed_Input.Bounds.Contains(mouse.Position) ? seed_Input :
 					worldName_Input.Bounds.Contains(mouse.Position) ? worldName_Input :
+					tribeName_Input.Bounds.Contains(mouse.Position) ? tribeName_Input :
 					null;
 
 				if (next != _focusedInput)
@@ -225,6 +278,7 @@ namespace UntilWeFall
 		
 			worldName_Input.Update(mouse);
 			seed_Input.Update(mouse);
+			tribeName_Input.Update(mouse);
 
 			if (_previewState == PreviewState.Accepted) {
         				_requestLoading = true;
@@ -255,10 +309,11 @@ namespace UntilWeFall
 			{
 				// Decide what "empty" means (pick one)
 				string effectiveSeed = string.IsNullOrWhiteSpace(
-					seed_Input.Value) ? "default"
+					seed_Input.Value) 
+					? "default" 
 					: seed_Input.Value;
 
-				bool seedChanged = prevSeed != effectiveSeed;
+				bool seedChanged = (_previewState == PreviewState.None) || (prevSeed != effectiveSeed);
 
 				if (seedChanged) {
 					// if seed is empty or is not the same as the last seed....
@@ -314,7 +369,7 @@ namespace UntilWeFall
 				Fonts.Get("12"), 
 				$"{_earthSeed}" + " + " + $"{_skySeed}", 
 				new Vector2(
-					_rightPanelRect.X , 
+					_rightPanelRect.X + 32 , 
 					64), 
 				Color.White * 0.25f);
 #endregion <-----DRAW SEED INPUT---<<<-
@@ -322,8 +377,10 @@ namespace UntilWeFall
 #region Input
 			seed_Input.Draw(_spriteBatch);
 			worldName_Input.Draw(_spriteBatch);
+			tribeName_Input.Draw(_spriteBatch);
 #endregion  <------ INPUT ----<<<-
 
+#region COMMIT AND LOAD
 			if (_previewState == PreviewState.Accepted)
 			{
 				_spriteBatch.DrawString(
@@ -335,6 +392,8 @@ namespace UntilWeFall
 					Color.White * .5f);
 				//ChangeState(GameStateID.Loading);
 			}
+#endregion <-------COMMIT AND LOAD---<<<-
+
 #region LANDFALL
 			_spriteBatch.DrawString(
 				Fonts.Get("24"),
@@ -347,7 +406,6 @@ namespace UntilWeFall
 
 #region MAP PREVIEW
 			_mapPreview.Draw(_spriteBatch, Fonts.Get("12"));
-
 #endregion <-----MAP PREVIEW---<<<-
 
 			_spriteBatch.Begin(
@@ -376,7 +434,6 @@ namespace UntilWeFall
 			);
 
 			DrawLine(sb, snapped, snapped + new Vector2(tileSize, 0), Color.Yellow, 2);
-			
 			DrawLine(sb, snapped, snapped + new Vector2(0, tileSize), Color.Yellow, 2);
 		}
 #endregion <-----Draw CURSOR---<<<-

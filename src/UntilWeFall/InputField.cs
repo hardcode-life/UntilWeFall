@@ -72,10 +72,10 @@ public class InputField
 
 	public void Append(char c)
 	{
-	if (!Enabled || !IsFocused) return;
-	if (Value.Length >= MaxLength) return;
+		if (!Enabled || !IsFocused) return;
+		if (Value.Length >= MaxLength) return;
 
-	Value += c;
+		Value += c;
 	}
 
 	public void Update(MouseState mouse)
@@ -110,7 +110,7 @@ public class InputField
 
 		if (Font == null) return;
 
-		bool showPlaceholder = string.IsNullOrEmpty(Value);
+		bool showPlaceholder = string.IsNullOrEmpty(Value) && !IsFocused;
         		string toShow = showPlaceholder ? Placeholder : Value;
 
 		// Placeholder should be dimmer
@@ -151,5 +151,32 @@ public class InputField
 			return;
 		}
 		Value = "";
+	}
+
+	public void SetValue(string value)
+	{
+		Value = value ?? "";
+		if (value.Length > MaxLength) {
+			value = value.Substring(0, MaxLength);
+		}
+
+		Value = value;	
+	}
+
+	public InputField WithPlaceholder(string placeholder)
+	{
+		SetPlaceholder(placeholder);
+		return this;
+	}
+
+	public void SetPlaceholder(string placeholder)
+	{
+		Placeholder = placeholder ?? "";
+	}
+
+	public InputField WithValue(string value)
+	{
+		SetValue(value);
+		return this;
 	}
 }
