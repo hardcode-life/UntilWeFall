@@ -45,7 +45,8 @@ namespace UntilWeFall
 		public int PixelWidth => PreviewW * _cellW;
 		public int PixelHeight => PreviewH * _cellH;
 		public Vector2 Origin => _origin;
-
+		private HeightMap? _hm;
+		public HeightMap? PreviewHeight => _hm;
 
 		public void SetPreview(
 			Vector2 origin, 
@@ -106,6 +107,8 @@ namespace UntilWeFall
 					_rng, 
 					out _previewLabel);
 
+				_hm = new HeightMap(PreviewW, PreviewH, seaLevel: 0.32f, lakeLevel: 0.38f);
+
 				float[,] raw = SimplexNoise.GenerateNoiseMap(
 					PreviewW, PreviewH,
 					earthSeed,
@@ -142,6 +145,7 @@ namespace UntilWeFall
 							landBiasPow);
 
 						n01 = MathHelper.Clamp(n01 * mask, 0f, 1f);
+						_hm.SetHeight(x, y, n01);
 
 						int d = (int)(n01 * 9.999f);
 						d = ClampInt(d, 0, 9);
@@ -150,6 +154,13 @@ namespace UntilWeFall
 						_glyphNoise[x, y] = _rng.Next(4);	
 					}
 				}
+				_hm.ClassifyOceans();
+
+				int lakes = 0;
+				for (int y = 0; y < PreviewH; y++)
+				for (int x = 0; x < PreviewW; x++)
+				if (_hm.IsLake(x, y)) lakes++;
+				_previewLabel += $" | lakes:{lakes}";
 
 				float landRatio = ComputeLandRatio(_digits, PreviewW, PreviewH);
 				
@@ -172,8 +183,10 @@ namespace UntilWeFall
 			_spawnTile = new Point(worldW / 2, worldH / 2);
 		}
 
-		public void Draw(SpriteBatch sb, SpriteFont font)
+		public void Draw(SpriteBatch sb, SpriteFont font, HeightMap? hm = null)
 		{
+			hm ??= _hm;
+
 			sb.Begin(samplerState: SamplerState.PointClamp);
 
 			// grid
@@ -181,70 +194,69 @@ namespace UntilWeFall
 				for (int x = 0; x < PreviewW; x++) {
 					int digit = _digits[x, y];
 
+					// let height map decide water type
+					bool hasHM = hm != null;
+					bool isOcean = false;
+					bool isLake = false;
+
+					if (hasHM) // if it has a heightmap...
+					{
+						isOcean = hm!.IsOcean(x, y);
+						isLake = hm!.IsLake(x, y);
+
+						digit = (int)(hm.GetHeight(x, y) * 9.999f);
+						digit = ClampInt(digit, 0, 9);
+					}
+
 					Color color;
 					string glyph;
 
-					if (_seeded) {
-						if (digit <= 1) {
-							color = Hex.convert("#14c5dd"); // sea
+					if (_seeded)
+					{
+						int n = _glyphNoise[x, y];
 
-							//int hash = (x * 73856093) ^ (y * 19349663) ^ _earthSeed;
-							
-							//int n = Math.Abs(hash) % 4;
-							int n = _glyphNoise[x, y];
-
-							glyph = n switch {
-								0 => "W",
-								1 => "w",
-								2 => "m",
-								_ => "M"
-							};
+						if (hasHM && isOcean)
+						{
+							color = Hex.convert("#14c5dd"); // ocean
+							glyph = n switch { 0 => "W", 1 => "w", 2 => "m", _ => "M" };
 						}
-						else if (digit == 2) {
-							color = Hex.convert("#5af9de"); // reef
-
-							//glyph = "%";
-							
-							int n = _glyphNoise[x, y];
-							
-							glyph = n switch {
-								0 => "+",
-								1 => "-",
-								2 => "_",
-								_ => "/"
-							};
+						else if (hasHM && isLake)
+						{
+							// inland water (lakes)
+							color = Hex.convert("#2b86ff"); // pick any lake color you like
+							glyph = n switch { 0 => "~", 1 => "=", 2 => "-", _ => "_" };
 						}
-						else if (digit == 3) {
-							color = Hex.convert("#fdedaf") ; // beaches
-
-							//glyph = "$";
-							int n = _glyphNoise[x, y];
-							
-							glyph = n switch {
-								0 => "#",
-								1 => "/",
-								2 => "+",
-								_ => "%"
-							};
-						}
-						else {
-							color = Hex.convert("#b0e832") ; // land
-
-							//glyph = "#";
-							int n = _glyphNoise[x, y];
-							
-							glyph = n switch {
-								0 => "'",
-								1 => "\"",
-								2 => ",",
-								_ => "."
-							};
+						else
+						{
+							// fallback to your old digit-based land/coast logic
+							if (digit <= 1)
+							{
+								color = Hex.convert("#14c5dd"); // sea (old behavior)
+								glyph = n switch { 0 => "W", 1 => "w", 2 => "m", _ => "M" };
+							}
+							else if (digit == 2)
+							{
+								color = Hex.convert("#5af9de"); // reef
+								glyph = n switch { 0 => "+", 1 => "-", 2 => "_", _ => "/" };
+							}
+							else if (digit == 3)
+							{
+								color = Hex.convert("#fdedaf"); // beaches
+								glyph = n switch { 0 => "#", 1 => "/", 2 => "+", _ => "%" };
+							}
+							else
+							{
+								color = Hex.convert("#b0e832"); // land
+								glyph = n switch { 0 => "'", 1 => "\"", 2 => ",", _ => "." };
+							}
 						}
 					}
-					else {
+					else
+					{
 						color = Color.DarkGray;
 						glyph = "#";
 					}
+
 
 					float shade = MathHelper.Clamp(
 						0.25f + (digit * 0.07f),

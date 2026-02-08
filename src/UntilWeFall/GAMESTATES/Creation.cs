@@ -67,6 +67,8 @@ namespace UntilWeFall
 		const int PreviewTopPad = 0;
 		const int PreviewBottomPad = 80; // label + breathing room
 
+		private HeightMap? _previewHeight;
+
 		public Creation(GameContext ctx, Action<GameStateID> changeState) : base(ctx, changeState)
 		{
 			/* spiders ahead
@@ -329,15 +331,40 @@ namespace UntilWeFall
 						coast: 30f,
 						landBiasPow: 0.7f
 					);
+
+					float[,] hRaw = SimplexNoise.GenerateNoiseMap(
+						_mapPreview.PreviewWCells,
+						_mapPreview.PreviewHCells,
+						_earthSeed,
+						200f,
+						5,
+						0.6f,
+						2f,
+						0,
+						0);
+					
+					_previewHeight = new HeightMap(
+						_mapPreview.PreviewWCells,
+						_mapPreview.PreviewHCells,
+						seaLevel: 0.32f,
+						lakeLevel: 0.38f);
+
+					for (int y = 0; y < _previewHeight.Height; y++)
+					{
+						for (int x = 0; x < _previewHeight.Width; x++)
+						{
+							_previewHeight.SetHeight(x, y, hRaw[x, y]);
+						}
+					}
+					_previewHeight.ClassifyOceans();
+
 					_previewState = PreviewState.Generated;
-					//_hasPreview = true;
-					//_mapAccepted = false;
 
 					prevSeed = effectiveSeed;
 				} else {
 					// ...else, ACCEPT MAP
 					if (_previewState == PreviewState.Generated) {
-						SimplexNoise.GenerateNoiseMap(
+						/*SimplexNoise.GenerateNoiseMap(
 							512, 512,
 							_earthSeed,
 							200f,
@@ -346,9 +373,9 @@ namespace UntilWeFall
 							2f,
 							0,
 							0
-						);
+						);*/
+						
 						_previewState = PreviewState.Accepted;
-						//_mapAccepted = true;
 					}
 
 					// TODO: move world gen to loading state + Task.Run

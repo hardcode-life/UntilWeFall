@@ -51,10 +51,18 @@ with.
     See the documentation for more information.
     -->
     <CharacterRegions>
-      <CharacterRegion>
-        <Start>&#32;</Start>
-        <End>&#126;</End>
-      </CharacterRegion>
-    </CharacterRegions>
+  <!-- Basic ASCII range -->
+  <CharacterRegion>
+    <Start>&#32;</Start>
+    <End>&#126;</End>
+  </CharacterRegion>
+
+  <!-- Just the "≈" character -->
+  <CharacterRegion>
+    <Start>≈</Start>
+    <End>≈</End>
+  </CharacterRegion>
+</CharacterRegions>
+
   </Asset>
 </XnaContent>
