@@ -1,6 +1,7 @@
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework;
+using UntilWeFall;
 
 
 public sealed class GameContext
@@ -10,6 +11,7 @@ public sealed class GameContext
 	public ContentManager Content { get; }
 	public SpriteBatch SpriteBatch { get; }
 	public Texture2D pixel { get; }
+	public MapPreview? LastPreview { get; set;}
 
 	public GameContext(Game game, GraphicsDevice gd, ContentManager content, SpriteBatch sb)
 	{	

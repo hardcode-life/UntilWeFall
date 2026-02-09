@@ -24,7 +24,7 @@ namespace UntilWeFall
 #region SEED INPUT
 		private Rectangle seed_Input_bounds;
 		private InputField seed_Input;
-		private string prevSeed = null;
+		private string? prevSeed = null;
 		private int _earthSeed;
 		private int _skySeed;
 		private KeyboardState _kbPrev;
@@ -303,6 +303,8 @@ namespace UntilWeFall
 			seed_Input.Update(mouse);
 			tribeName_Input.Update(mouse);
 
+			CTX.LastPreview = _mapPreview;
+
 			if (_previewState == PreviewState.Accepted) {
         				_requestLoading = true;
 			}
@@ -457,18 +459,14 @@ namespace UntilWeFall
 				_mapPreview.Origin
 				+ new Vector2(32, _mapPreview.PixelHeight + 8),
 				Color.Orange * 0.5F);
-			_spriteBatch.End();
 #endregion <----LANDFALL--------<<<-
 
 #region MAP PREVIEW
-			_mapPreview.Draw(_spriteBatch, Fonts.Get("12"));
+			_mapPreview.Draw(_spriteBatch, Fonts.Get("12"), hm: _mapPreview.PreviewHeight);
 #endregion <-----MAP PREVIEW---<<<-
-
-			_spriteBatch.Begin(
-				transformMatrix: _viewMatrix, samplerState: SamplerState.PointClamp);
 			
 			DrawCursor(_spriteBatch);
-	
+
 			_spriteBatch.End();
 		}
 

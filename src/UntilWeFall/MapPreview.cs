@@ -155,11 +155,11 @@ namespace UntilWeFall
 				}
 				_hm.ClassifyOceans();
 
-				int lakes = 0;
+				/*int lakes = 0;
 				for (int y = 0; y < PreviewH; y++)
 				for (int x = 0; x < PreviewW; x++)
 				if (_hm.IsLake(x, y)) lakes++;
-				_previewLabel += $" | lakes:{lakes}";
+				_previewLabel += $" | lakes:{lakes}";*/
 
 				float landRatio = ComputeLandRatio(_digits, PreviewW, PreviewH);
 				
@@ -182,12 +182,18 @@ namespace UntilWeFall
 			_spawnTile = new Point(worldW / 2, worldH / 2);
 		}
 
-		public void Draw(SpriteBatch sb, SpriteFont font, HeightMap? hm = null)
+		public void Draw(
+			SpriteBatch sb,
+			SpriteFont font,
+			HeightMap? hm = null,
+			Color? tint = null,
+			Vector2? offset = null,
+			bool drawSpawn = true)
 		{
 			hm ??= _hm;
+    			Vector2 off = offset ?? Vector2.Zero;
 
-			sb.Begin(samplerState: SamplerState.PointClamp);
-
+    			Vector4 tintV = tint?.ToVector4() ?? Vector4.One;
 			// grid
 			for (int y = 0; y < PreviewH; y++) {
 				for (int x = 0; x < PreviewW; x++) {
@@ -257,18 +263,41 @@ namespace UntilWeFall
 					}
 
 
-					float shade = MathHelper.Clamp(
-						0.25f + (digit * 0.07f),
-						0.25f,
-						1f);
+					float shade = MathHelper.Clamp(0.25f + (digit * 0.07f), 0.25f, 1f);
+					
+					Color final = color * shade;
 
-					#region DRAW MAP
+					if (tint.HasValue)
+					{
+						final = new Color(
+							final.R * tint.Value.A / 255f,
+							final.G * tint.Value.A / 255f,
+							final.B * tint.Value.A / 255f,
+							final.A * tint.Value.A / 255f
+						);
+					}
+					sb.DrawString(
+						font,
+						glyph,
+						_origin + off + new Vector2(x * _cellW, y * _cellH),
+						final
+					);
+				}
+
+				if (drawSpawn && _seeded)
+    				{
+					int sx = _spawnTile.X - _previewStart.X;
+					int sy = _spawnTile.Y - _previewStart.Y;
+
+					if (sx >= 0 && sx < PreviewW && sy >= 0 && sy < PreviewH)
+					{
 						sb.DrawString(
-							font,
-							glyph,
-							_origin + new Vector2(x * _cellW, y * _cellH),
-							color * shade);
-					#endregion
+						Fonts.Get("16"),
+						"@",
+						_origin + off + new Vector2(sx * _cellW, sy * _cellH),
+						Color.Orange
+						);
+					}
 				}
 			}
 				// spawn marker (draw once)
@@ -298,8 +327,6 @@ namespace UntilWeFall
 						32, 
 						(PreviewH * _cellH) + 8),
 					Color.White);*/
-
-			sb.End();
 			
 		}
 
