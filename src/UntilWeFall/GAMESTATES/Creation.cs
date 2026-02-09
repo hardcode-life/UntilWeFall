@@ -18,6 +18,9 @@ namespace UntilWeFall
 		}
 		PreviewState _previewState = PreviewState.None;
 
+		private Button logo_BTN;
+		private Rectangle logo_Bounds;
+
 #region SEED INPUT
 		private Rectangle seed_Input_bounds;
 		private InputField seed_Input;
@@ -81,6 +84,12 @@ namespace UntilWeFall
 			CTX.Game.Window.TextInput += OnTextInput;
 			_camera = new Camera2D(CTX.GraphicsDevice.Viewport.Width, CTX.GraphicsDevice.Viewport.Height);
 
+			logo_BTN = new  Button(Rectangle.Empty, Color.DarkGray)
+			{
+				Background = Textures.Get("mainLogo"),
+				OnClick = () => ChangeState(GameStateID.StartMenu)
+			};
+
 			int w = CTX.GraphicsDevice.Viewport.Width;
 			int h = CTX.GraphicsDevice.Viewport.Height;
 
@@ -104,6 +113,17 @@ namespace UntilWeFall
 			bool wasWorldFocused = _focusedInput == worldName_Input;
 			bool wasTribeFocused = _focusedInput == tribeName_Input;
 #endregion <----FOCUS---<<<-
+
+			/*logo_Bounds = new Rectangle (
+				0, 8,
+				Textures.Get("mainLogo").Width / 4, 
+				Textures.Get("mainLogo").Height / 4);*/
+			logo_Bounds = new Rectangle(
+				8,
+				(int)Fonts.Get("ex").MeasureString("UNTIL\nWE\nFALL").Y + 16,
+				Textures.Get("mainLogo").Width / 4,
+				Textures.Get("mainLogo").Height / 4);
+			logo_BTN.Bounds = logo_Bounds;
 
 			int logoLaneW = (Textures.Get("mainLogo").Width / 4) + 16;
 			int leftGutter = LeftPad + logoLaneW - 24;
@@ -277,6 +297,7 @@ namespace UntilWeFall
 			}
 			
 			HandleSeedCommit(kb);
+			logo_BTN.Update(mouse);
 		
 			worldName_Input.Update(mouse);
 			seed_Input.Update(mouse);
@@ -400,6 +421,14 @@ namespace UntilWeFall
 					64), 
 				Color.White * 0.25f);
 #endregion <-----DRAW SEED INPUT---<<<-
+
+			logo_BTN.Draw(_spriteBatch);
+			_spriteBatch.DrawString(
+				Fonts.Get("ex"),
+				"UNTIL\n    WE\nFALL",
+				new Vector2(8, 8),
+				Color.Orange
+			);
 
 #region Input
 			seed_Input.Draw(_spriteBatch);

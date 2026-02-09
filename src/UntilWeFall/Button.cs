@@ -18,48 +18,48 @@ public class Button
 
 	public bool Enabled = true;
 
-	public Button(Rectangle bounds)
+	public Color _color;
+
+	public Button(Rectangle bounds, Color color)
 	{
 		Bounds = bounds;
+		_color = color;
 	}
 
 	public void Update(MouseState mouse)
 	{
-		if (!Enabled)
-		{
+		if (!Enabled) { 
 			return;
 		}
-		else {
-			if (_hovered)
-			{
-				Mouse.SetCursor(MouseCursor.Hand);
-			}
-			
-			Point mousePoint = new Point(mouse.X, mouse.Y);
-			_hovered = Bounds.Contains(mousePoint);
 
-			bool _isPressed = mouse.LeftButton == ButtonState.Pressed;
+		Point mousePoint = new Point(mouse.X, mouse.Y);
+		_hovered = Bounds.Contains(mousePoint);
 
-			if (_hovered && _isPressed && !_wasPressed)
-			{
-				// if Left BTN is pressed, Invoke action
-				OnClick?.Invoke();
-			}
-			_wasPressed = _isPressed;
+		if (_hovered) {
+			Mouse.SetCursor(MouseCursor.Hand);
 		}
+
+		bool isPressed = mouse.LeftButton == ButtonState.Pressed;
+
+		if (_hovered && isPressed && !_wasPressed) {
+			OnClick?.Invoke();
+		}
+
+		_wasPressed = isPressed;
 	}
+
 
 	public void Draw(SpriteBatch sb)
 	{
 		var tint = !Enabled ? Color.DarkGray :
 		_hovered ? Color.Gray : 
-		Color.White;
+		_color;
 
 		if (Background != null) {
 			sb.Draw(
 				Background,
 				Bounds,
-				_hovered ? Color.Gray : Color.White);
+				_hovered ? Color.Gray : _color);
 		}
 		
 		if (!string.IsNullOrEmpty(Text) && Font != null) {	
@@ -72,7 +72,7 @@ public class Button
 				Font,
 				Text,
 				textPos,
-				Color.White);
+				_color);
 		}
 	}
 }

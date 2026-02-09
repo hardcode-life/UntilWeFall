@@ -123,7 +123,7 @@ namespace UntilWeFall
 					new Rectangle(0, 0, 2560, 1440), 
 					Color.White * 0.1f);*/
 
-				_spriteBatch.Draw( // LOGO
+				/*_spriteBatch.Draw( // LOGO
 					mainLogo,
 					new Rectangle(
 						//(GraphicsDevice.Viewport.Width / 2) - (mainLogo.Width / 2), 
@@ -139,7 +139,7 @@ namespace UntilWeFall
 						//(GraphicsDevice.Viewport.Width / 2) - (Fonts.Get("24").MeasureString("UNTIL\nWE\nFALL").X * 2f) - 24,
 						8,
 						8),
-					Color.Orange * .50f);
+					Color.Orange * .50f);*/
 				_spriteBatch.End();
 
 			_state.Draw(gameTime);

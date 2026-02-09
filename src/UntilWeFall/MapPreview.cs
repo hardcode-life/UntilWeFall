@@ -77,7 +77,6 @@ namespace UntilWeFall
 			}
 		}
 
-
 		public void Regenerate(
 			int earthSeed,
 			int skySeed,
