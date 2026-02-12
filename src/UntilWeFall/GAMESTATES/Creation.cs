@@ -72,6 +72,27 @@ namespace UntilWeFall
 
 		private HeightMap? _previewHeight;
 
+		private enum CreationPage { Traits, Population}
+		private CreationPage _page = CreationPage.Population;
+		List<CreationPage> _pageStack = new()
+		{
+			CreationPage.Traits,
+			CreationPage.Population
+		};
+
+		void BringToFront(CreationPage page)
+		{
+			_pageStack.Remove(page);
+			_pageStack.Add(page);
+		}
+
+#region POPULATION tab
+		private Button plus;
+		private Rectangle plus_Bounds;
+		private Button minus;
+		private Rectangle minus_Bounds;
+#endregion
+
 		public Creation(GameContext ctx, Action<GameStateID> changeState) : base(ctx, changeState)
 		{
 			/* spiders ahead
@@ -81,6 +102,7 @@ namespace UntilWeFall
 
 		public override void Enter()
 		{
+
 			CTX.Game.Window.TextInput += OnTextInput;
 			_camera = new Camera2D(CTX.GraphicsDevice.Viewport.Width, CTX.GraphicsDevice.Viewport.Height);
 
@@ -95,10 +117,62 @@ namespace UntilWeFall
 
 			_lastW = w;
 			_lastH = h;
+
+			seed_Input = new InputField(
+				seed_Input_bounds,
+				"Enter seed . . .",
+				Fonts.Get("16"),
+				() => seed_Input.Clear(),
+				CTX.pixel,
+				Color.White
+			);
+
+			worldName_Input = new InputField(
+				worldName_Input_bounds,
+				"What do you name this land?",
+				Fonts.Get("16"),
+				() => worldName_Input.Clear(),
+				CTX.pixel,
+				Color.White
+			);
+
+			tribeName_Input = new InputField(
+				tribeName_Input_bounds,
+				"What do you name this people?",
+				Fonts.Get("16"),
+				() => tribeName_Input.Clear(),
+				CTX.pixel,
+				Color.White
+			);
+			
 			ReflowLayout(w, h);
 
 			_focusedInput = seed_Input;
 			seed_Input.Focus();
+
+#region Population tab BUTTONS
+			plus_Bounds = new Rectangle(
+				0 , 
+				0, 
+				(int)Fonts.Get("32").MeasureString("[+]").X, 
+				(int)Fonts.Get("32").MeasureString("[+]").Y);
+			minus_Bounds = new Rectangle(
+				0 , 
+				0, 
+				(int)Fonts.Get("32").MeasureString("[-]").X, 
+				(int)Fonts.Get("32").MeasureString("[-]").Y); 
+			
+			plus = new Button(plus_Bounds, Color.Orange)
+			{
+				Text = "[+]",
+				Bounds = plus_Bounds
+			};
+			minus = new Button(minus_Bounds, Color.Orange)
+			{
+				Text = "[-]",
+				Bounds = minus_Bounds
+			};
+#endregion
 		}
 
 
@@ -126,7 +200,8 @@ namespace UntilWeFall
 			logo_BTN.Bounds = logo_Bounds;
 
 			int logoLaneW = (Textures.Get("mainLogo").Width / 4) + 16;
-			int leftGutter = LeftPad + logoLaneW - 24;
+			//int leftGutter = LeftPad + logoLaneW - 24;
+			int leftGutter = (int)(Fonts.Get("12").MeasureString("W").X * 12);
 
 			int rightPanelW = Math.Max(RightPanelWidthMin, w / 2);
 			int previewAreaW = w - rightPanelW - leftGutter - RightPanelPad;
@@ -162,9 +237,9 @@ namespace UntilWeFall
 #region INPUT FIELD BACKGROUND
 			// Input bounds anchored to right panel
 			seed_Input_bounds = new Rectangle(
-				_rightPanelRect.X - 16,
+				_rightPanelRect.X -24,
 				16,
-				_rightPanelRect.Width + 16,
+				_rightPanelRect.Width + 24,
 				32
 			);
 
@@ -184,32 +259,12 @@ namespace UntilWeFall
 #endregion <------INPUT FIELD BACKGROUND-------<<<-
 
 			// Recreate or update InputFields (depends on your class design)
-			seed_Input = new InputField(
-				seed_Input_bounds,
-				"Enter seed . . .",
-				Fonts.Get("16"),
-				() => seed_Input.Clear(),
-				CTX.pixel,
-				Color.White
-			);
-
-			worldName_Input = new InputField(
-				worldName_Input_bounds,
-				"What do you name this land?",
-				Fonts.Get("16"),
-				() => worldName_Input.Clear(),
-				CTX.pixel,
-				Color.White
-			);
-
-			tribeName_Input = new InputField(
-				tribeName_Input_bounds,
-				"What do you name this people?",
-				Fonts.Get("16"),
-				() => tribeName_Input.Clear(),
-				CTX.pixel,
-				Color.White
-			);
+			seed_Input.SetBounds(seed_Input_bounds);
+			seed_Input.SetPlaceholder("Enter seed . . .");
+			worldName_Input.SetBounds(worldName_Input_bounds);
+			worldName_Input.SetPlaceholder("What do you name this land?");
+			tribeName_Input.SetBounds(tribeName_Input_bounds);
+			tribeName_Input.SetPlaceholder("What do you name this people?");
 
 			if (wasSeedFocused) 
 			{ 
@@ -303,6 +358,10 @@ namespace UntilWeFall
 			seed_Input.Update(mouse);
 			tribeName_Input.Update(mouse);
 
+			CTX.EarthSeed = _earthSeed;
+			CTX.SkySeed = _skySeed;
+			CTX.WorldWidth = CTX.GraphicsDevice.Viewport.Width;
+			CTX.WorldHeight = CTX.GraphicsDevice.Viewport.Height;
 			CTX.LastPreview = _mapPreview;
 
 			if (_previewState == PreviewState.Accepted) {
@@ -322,6 +381,10 @@ namespace UntilWeFall
 				ReflowLayout(w, h);
 			}
 
+			#region Population tab BUTTONS update
+			plus.Update(mouse);
+			minus.Update(mouse);
+			#endregion
 		}
 
 		private void HandleSeedCommit(KeyboardState kb)
@@ -363,6 +426,8 @@ namespace UntilWeFall
 						5,
 						0.6f,
 						2f,
+						1f,
+						1f,
 						0,
 						0);
 					
@@ -465,10 +530,87 @@ namespace UntilWeFall
 			_mapPreview.Draw(_spriteBatch, Fonts.Get("12"), hm: _mapPreview.PreviewHeight);
 #endregion <-----MAP PREVIEW---<<<-
 			
+			Population(_spriteBatch);
+			Traits(_spriteBatch);
+			//Population(_spriteBatch);
+
 			DrawCursor(_spriteBatch);
 
 			_spriteBatch.End();
 		}
+
+#region TRAITS tab
+		private void Traits(SpriteBatch sb)
+		{
+			sb.Draw(
+				Textures.Get("traits_tab"), 
+				new Rectangle(
+					(CTX.GraphicsDevice.Viewport.Width / 2) - 24, 
+					88, 
+					64, 
+					240),
+				Hex.convert("#2c373e"));
+			sb.Draw(
+				Textures.Get("bg"), 
+				new Rectangle(
+					(CTX.GraphicsDevice.Viewport.Width / 2) - 24, 
+					275, 
+					CTX.GraphicsDevice.Viewport.Width / 2, 
+					CTX.GraphicsDevice.Viewport.Width / 2), 
+				Hex.convert("#2c373e"));
+
+			sb.Draw(
+				Textures.Get("traits_tab_img1"), 
+				new Rectangle(
+					(CTX.GraphicsDevice.Viewport.Width / 2) - 22, 
+					95, 
+					40, 
+					49), 
+				Hex.convert("#ffffff"));
+
+			sb.Draw(
+				Textures.Get("traits_tab_img2"), 
+				new Rectangle(
+					(CTX.GraphicsDevice.Viewport.Width / 2) - 11, 
+					162, 
+					19, 
+					29), 
+				Hex.convert("#ffffff"));
+		}
+#endregion
+
+#region POPULATION tab
+		private void Population(SpriteBatch sb)
+		{
+			sb.Draw(
+				Textures.Get("population_tab"), 
+				new Rectangle(
+					(CTX.GraphicsDevice.Viewport.Width / 2) + 170, 
+					205, 
+					330, 
+					67),
+				Hex.convert("#111518"));
+			sb.Draw(
+				Textures.Get("bg"), 
+				new Rectangle(
+					(CTX.GraphicsDevice.Viewport.Width / 2) + 85, 
+					256, 
+					(CTX.GraphicsDevice.Viewport.Width / 2) - 100, 
+					CTX.GraphicsDevice.Viewport.Width / 2), 
+				Hex.convert("#111518"));
+
+			sb.DrawString(
+				Fonts.Get("16"),
+				"Human Population",
+				new Vector2(
+					(CTX.GraphicsDevice.Viewport.Width / 2) + 200, 
+					220),
+				Color.White);
+
+			plus.Draw(sb);
+			minus.Draw(sb);            
+		}
+#endregion
 
 #region Draw CURSOR
 		private void DrawCursor(SpriteBatch sb)

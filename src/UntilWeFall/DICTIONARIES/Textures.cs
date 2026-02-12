@@ -11,6 +11,13 @@ namespace UntilWeFall
 		public static void Load(ContentManager Content)
 		{
 			textures["mainLogo"] = Content.Load<Texture2D>("sprites/main_logo");
+			textures["bg"] = Content.Load<Texture2D>("sprites/bg_64x64");
+
+			textures["traits_tab"] = Content.Load<Texture2D>("sprites/tab1"); // TRAITS
+			textures["traits_tab_img1"] = Content.Load<Texture2D>("sprites/TRAIT_tab_img1_40x49");
+			textures["traits_tab_img2"] = Content.Load<Texture2D>("sprites/TRAIT_tab_img2_19x29");
+
+			textures["population_tab"] = Content.Load<Texture2D>("sprites/tab2");  // POPULAYIONS
 		}
 
 		public static Texture2D Get (string key)

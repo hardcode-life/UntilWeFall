@@ -13,6 +13,14 @@ public sealed class GameContext
 	public Texture2D pixel { get; }
 	public MapPreview? LastPreview { get; set;}
 
+	public int EarthSeed {get; set;}
+	public int SkySeed {get; set; }
+
+	public int WorldWidth { get; set;}
+	public int WorldHeight {get; set;}
+
+	public WorldData worldData {get; set;}
+
 	public GameContext(Game game, GraphicsDevice gd, ContentManager content, SpriteBatch sb)
 	{	
 		Game = game;

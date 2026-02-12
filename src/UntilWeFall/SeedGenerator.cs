@@ -4,10 +4,21 @@ namespace UntilWeFall
 {
 	public static class SeedGenerator
 	{
+		public static int worldSEED;
 		public static void Derive(string input, out int earthSeed, out int skySeed)
 		{
 			int combined = HashToInt32(input);
-			SplitSeed(combined, out earthSeed, out skySeed);
+			worldSEED = combined;
+
+			earthSeed = HashSeed(combined, "EARTH");
+			skySeed   = HashSeed(combined, "SKY");
+			//SplitSeed(combined, out earthSeed, out skySeed);
+		}
+
+		public static void Derive_fromLoading(out int earthSeed, out int skySeed)
+		{
+			earthSeed = HashSeed(worldSEED, "EARTH");
+			skySeed   = HashSeed(worldSEED, "SKY");
 		}
 
 		private static int HashToInt32(string s)
@@ -41,14 +52,27 @@ namespace UntilWeFall
 			}
 		}
 
-		private static void SplitSeed(int combined, out int earth, out int sky)
+		public static int HashSeed(int baseSeed, string label)
+		{
+			unchecked
+			{
+				int hash = 17;
+				hash = hash * 31 + baseSeed;
+				for (int i = 0; i < label.Length; i++) {
+					hash = hash * 31 + label[i];
+				}	
+				return hash;
+			}
+		}
+
+		/*private static void SplitSeed(int combined, out int earth, out int sky)
 		{
 			unchecked
 			{
 				uint u = (uint)combined;
-				earth = (int)((u >> 16) & 0xffff);
+				earth = (int)((u >> 32) & 0xffff);
 				sky = (int)(u & 0xffff);
 			}
-		}
+		}*/
 	}
 }

@@ -25,9 +25,15 @@ namespace UntilWeFall
 		private Task? _task;
 		private MapPreview? _preview;
 		private Vector2 previewOffset = Vector2.Zero;
-		private float previewAlpha = 0f;
+		//private float previewAlpha = 0f;
 			
-		Vector2 offset = Vector2.Zero;
+		//Vector2 offset = Vector2.Zero;
+		private string _displayMessage = "";
+		private float _displayTargetProgress = 0f;
+		private int _generatedEarthSeed;
+		private int _generatedSkySeed;
+		private WorldData? _generatedWorld;
+		WorldData wd;
 		public Loading(GameContext ctx, Action<GameStateID> changeState)
 			: base(ctx, changeState)
 		{
@@ -36,25 +42,33 @@ namespace UntilWeFall
 
 		public override void Enter()
 		{
-			_preview = CTX.LastPreview;
 			displayProgress = 0f;
 
 			_status.Progress = 0f;
 			_status.Message = "Preparing world. . .";
 			_status.Done = false;
 			_status.Failed = false;
+			_status.Error = "";
+
+			int w = CTX.GraphicsDevice.Viewport.Width;
+			int h = CTX.GraphicsDevice.Viewport.Height;
+
+			_preview = new MapPreview();
+			_preview.SetPreview(Vector2.Zero, w, h, cellW: 12, cellH: 12);
+			_preview.Regenerate(CTX.EarthSeed, CTX.SkySeed, CTX.WorldWidth, CTX.WorldHeight);
 
 			_task = Task.Run(() =>
 			{
 				try
 				{
-					RunPipeline();
+					//RunPipeline();
+					GenerateWorld();
 					_status.Done = true;
 				}
 				catch (Exception ex)
 				{
 					_status.Failed = true;
-					_status.Error = ex.Message;
+					_status.Error = ex.ToString(); // better than Message only
 				}
 			});
 		}
@@ -90,6 +104,44 @@ namespace UntilWeFall
 			_status.Message = "Done.";
 		}
 
+		private void GenerateWorld(){
+			_status.Message = "Sowing seeds.. . . ..";
+			_status.Progress = 0.05f;
+			
+			SeedGenerator.Derive_fromLoading(out int earthSeed, out int skySeed);
+
+			var newWorld = new WorldData(CTX.WorldWidth, CTX.WorldHeight);
+
+			_generatedEarthSeed = earthSeed;
+			_generatedSkySeed = skySeed;
+			_generatedWorld = newWorld;
+
+			_status.Message = "Allocating world data...";
+			_status.Progress = 0.10f;
+
+			wd = new WorldData(CTX.WorldWidth, CTX.WorldHeight);   // or whatever size
+			CTX.worldData = wd;                // store in GameContext
+
+			//_status.Message = "Generating terrain...";
+			//_status.Progress = 0.15f;
+
+			newWorld.GenerateAll(earthSeed, (p, m) => { _status.Progress = p; _status.Message = m; });
+
+			wd.GenerateAll(earthSeed, (progress, message) => 
+			{
+				_status.Progress = progress;
+				_status.Message = message;
+			});
+
+			_status.Message = "Finalizing...";
+			_status.Progress = 0.95f;
+
+			// Optional smoothing or biome calculation here
+
+			_status.Progress = 1f;
+			_status.Message = "Done.";
+		}
+
 		private void Stage(float weight, string msg, Action work)
 		{
 			_status.Message = msg;
@@ -107,6 +159,9 @@ namespace UntilWeFall
 
 		public override void Update(GameTime gameTime) 
 		{	
+			_displayTargetProgress = _status.Progress;
+    			_displayMessage = _status.Message;
+		
 			//float speed = 8f; // ʕಠᴥಠʔ lower for snappier, higher for smoother
 
 			float dt = (float)gameTime.ElapsedGameTime.TotalSeconds;
@@ -117,9 +172,8 @@ namespace UntilWeFall
 
 			displayProgress = MathHelper.Lerp(
 				displayProgress,
-				_status.Progress,
-				lerpT
-				);
+				_displayTargetProgress,
+				lerpT);
 
 			float t = (float)gameTime.TotalGameTime.TotalSeconds;
 			previewOffset = new Vector2(
@@ -127,19 +181,20 @@ namespace UntilWeFall
 				MathF.Cos(t * 0.12f)
 			) * 2f;
 
-			previewAlpha = MathHelper.Clamp(displayProgress / 0.1f, 0f, 1f);
+			//previewAlpha = MathHelper.Clamp(displayProgress / 0.1f, 0f, 1f);
 
-			if (displayProgress > _status.Progress)
+			if (displayProgress > _displayTargetProgress)
 			{
-				displayProgress = _status.Progress;
+				displayProgress = _displayTargetProgress;
 			}
 
-			if (MathF.Abs(displayProgress - _status.Progress) < 0.001f) {
-				displayProgress = _status.Progress;
+			if (MathF.Abs(displayProgress - _displayTargetProgress) < 0.001f) {
+				displayProgress = _displayTargetProgress;
 			}
 
 			if (_status.Failed)
 			{
+			
 				if (Keyboard.GetState().IsKeyDown(Keys.Escape))
 				{
 					ChangeState(GameStateID.Creation);
@@ -150,6 +205,13 @@ namespace UntilWeFall
 			if (_status.Done && displayProgress >= 0.999f)
 			{
 				ChangeState(GameStateID.Playing);
+			}
+
+			if (_status.Done && !_status.Failed && _generatedWorld != null)
+			{
+				CTX.EarthSeed = _generatedEarthSeed;
+				CTX.SkySeed = _generatedSkySeed;
+				CTX.worldData = _generatedWorld;
 			}
 		}
 
@@ -193,29 +255,46 @@ namespace UntilWeFall
 
 				Vector2 barPos = new Vector2(
 				(w - font.MeasureString(bar).X) / 2f,
-				h - 100);
+				h);
 
 				sb.Draw(CTX.pixel, fullScreenRect, bgColor);
 
 				if (_preview != null)
 				{
 					float previewAlpha = MathHelper.Clamp(displayProgress / 0.10f, 0f, 1f);
-					Color tint = Color.Black * (0.80f * previewAlpha);
+					Color tint = Color.White * (0.80f * previewAlpha);
 
-					_preview.Draw(
+					/*_preview.Draw(
 						sb,
 						Fonts.Get("12"),
 						hm: _preview.PreviewHeight,
 						tint: tint,
 						offset: previewOffset,
 						drawSpawn: false
-						);
+						);*/
+					_preview.Draw(
+						sb,
+						Fonts.Get("12"),
+						hm: _preview.PreviewHeight,
+						Color.White * .25f,
+						offset: new Vector2(0, 0),
+						drawSpawn: false);
 				}
+				var msgSize = font.MeasureString(_displayMessage);
+				//var msgPos = new Vector2((w - msgSize.X) / 2f, barPos.Y + 36);
+				var msgPos = new Vector2(8, h - (Fonts.Get("16").MeasureString("X").Y * 10));
 
-				//DrawLoadingUI(sb);
-				sb.DrawString(font, bar, barPos, Color.White * 0.5f);
-				sb.DrawString(font, _status.Message, barPos + new Vector2(0, 36), Color.White * 0.8f);
+				DrawLoadingUI(sb, font, msgPos, bar);
+				//sb.DrawString(font, bar, barPos, Color.White * 0.5f);
+				//sb.DrawString(font, _status.Message, barPos + new Vector2(0, 36), Color.White * 0.8f);
 			sb.End();
 		}
+
+		private void DrawLoadingUI(SpriteBatch sb, SpriteFont font, Vector2 barPos, string bar)
+		{
+			sb.DrawString(font, bar, barPos, Color.White * 0.5f);
+			sb.DrawString(Fonts.Get("16"), _displayMessage, barPos + new Vector2(64, 40), Color.Orange * 0.8f);
+		}
+
 	}
 }

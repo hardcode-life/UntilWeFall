@@ -48,6 +48,8 @@ namespace UntilWeFall
 		private HeightMap? _hm;
 		public HeightMap? PreviewHeight => _hm;
 
+		int uiPadding = 160; // px reserved for bar + message
+
 		public void SetPreview(
 			Vector2 origin, 
 			int areaWpx, 
@@ -115,6 +117,8 @@ namespace UntilWeFall
 					octaves,
 					persistence,
 					lacunarity,
+					1f,
+					1f,
 					start.X,
 					start.Y);
 
@@ -194,10 +198,12 @@ namespace UntilWeFall
     			Vector2 off = offset ?? Vector2.Zero;
 
     			Vector4 tintV = tint?.ToVector4() ?? Vector4.One;
+			Color tintColor = tint ?? Color.White;
 			// grid
 			for (int y = 0; y < PreviewH; y++) {
 				for (int x = 0; x < PreviewW; x++) {
 					int digit = _digits[x, y];
+					float shade = MathHelper.Clamp(0.25f + (digit * 0.07f), 0.25f, 1f);
 
 					// let height map decide water type
 					bool hasHM = hm != null;
@@ -263,17 +269,24 @@ namespace UntilWeFall
 					}
 
 
-					float shade = MathHelper.Clamp(0.25f + (digit * 0.07f), 0.25f, 1f);
+					//float shade = MathHelper.Clamp(0.25f + (digit * 0.07f), 0.25f, 1f);
 					
 					Color final = color * shade;
 
 					if (tint.HasValue)
 					{
-						final = new Color(
+						/*final = new Color(
 							final.R * tint.Value.A / 255f,
 							final.G * tint.Value.A / 255f,
 							final.B * tint.Value.A / 255f,
 							final.A * tint.Value.A / 255f
+						);*/
+						Color t = tint.Value;
+						final = new Color(
+							(final.R * t.R) / 255,
+							(final.G * t.G) / 255,
+							(final.B * t.B) / 255,
+							(final.A * t.A) / 255
 						);
 					}
 					sb.DrawString(

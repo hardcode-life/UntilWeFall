@@ -8,8 +8,8 @@ using Microsoft.Xna.Framework;
   
 	static SimplexNoise()
 	{
-	set_permutation();
-	_permReady = true;
+		set_permutation();
+		_permReady = true;
 	}
     	static float _scale; // 200f
     	static int _octaves; // 11, 5
@@ -31,6 +31,8 @@ using Microsoft.Xna.Framework;
             	int octaves,
             	float persistence,
             	float lacunarity,
+		float amplitude,
+		float exponent,
 		int startX,
 		int startY) {
 			var noiseMap = new float[width, height];
@@ -52,7 +54,7 @@ using Microsoft.Xna.Framework;
 			// Generate raw noise heights
 			for (int y = 0; y < height; y++) {
 				for (int x = 0; x < width; x++) {
-					float amplitude = 1f;
+					float amp = amplitude;
 					float frequency = 1f;
 					float noiseHeight = 0f;
 
@@ -61,9 +63,9 @@ using Microsoft.Xna.Framework;
 						float sampleY = (y / scale * frequency) + octaveOffsets[i].Y;
 						float simplexValue = simplex(sampleX, sampleY);
 						// OpenSimplex typically yields ~[-1,1]
-						noiseHeight += simplexValue * amplitude;
+						noiseHeight += simplexValue * amp;
 
-						amplitude *= persistence;
+						amp *= persistence;
 						frequency *= lacunarity;
 					}
 
