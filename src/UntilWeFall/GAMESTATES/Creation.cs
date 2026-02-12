@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
@@ -72,18 +73,40 @@ namespace UntilWeFall
 
 		private HeightMap? _previewHeight;
 
-		private enum CreationPage { Traits, Population}
-		private CreationPage _page = CreationPage.Population;
-		List<CreationPage> _pageStack = new()
+		private sealed class CreationPage
 		{
-			CreationPage.Traits,
-			CreationPage.Population
-		};
+			public string Id;
+			public Button TabButton;          // the little vertical icon tab
+			public Rectangle TabRect;         // optional, if you aren’t using Button bounds
+			public Action<SpriteBatch, bool> Draw;  // draw body + header
+			public Action<MouseState> Update;        // optional
+		}
+		private readonly List<CreationPage> _pages = new();
+		private int _activePageIndex = 0;
 
-		void BringToFront(CreationPage page)
+		private Rectangle _traitsTabRect, _traitsBodyRect;
+		private Rectangle _popTabRect, _popBodyRect;
+		private CreationPage _traitsPage, _popPage;
+
+		private void BringToFront(CreationPage page)
 		{
-			_pageStack.Remove(page);
-			_pageStack.Add(page);
+			int i = _pages.IndexOf(page);
+			if (i < 0) return;
+
+			_pages.RemoveAt(i);
+			_pages.Add(page); // now it will draw last (on top)
+		}
+
+		void DrawPages(SpriteBatch sb)
+		{
+			// Draw pages bottom -> top.
+			// The last one drawn is visually on top.
+			for (int i = 0; i < _pages.Count; i++)
+			{
+				bool isTop = (i == _pages.Count - 1);
+				_pages[i].Draw(sb, isTop);
+			}
+
 		}
 
 #region POPULATION tab
@@ -143,12 +166,7 @@ namespace UntilWeFall
 				() => tribeName_Input.Clear(),
 				CTX.pixel,
 				Color.White
-			);
-			
-			ReflowLayout(w, h);
-
-			_focusedInput = seed_Input;
-			seed_Input.Focus();
+			);	
 
 #region Population tab BUTTONS
 			plus_Bounds = new Rectangle(
@@ -173,6 +191,32 @@ namespace UntilWeFall
 				Bounds = minus_Bounds
 			};
 #endregion
+			
+			ReflowLayout(w, h);
+
+			_traitsPage = new CreationPage
+			{
+				Id = "traits",
+				TabRect = _traitsTabRect,
+				Draw = (sb, isTop) => Traits(sb, isTop),
+				Update = (m) => { /* top-only later */ }
+			};
+
+			_popPage = new CreationPage
+			{
+				Id = "population",
+				TabRect = _popTabRect,
+				Draw = (sb, isTop) => Population(sb, isTop),
+				Update = (m) => { /* top-only later */ }
+			};
+
+			_pages.Clear();
+			_pages.Add(_traitsPage);
+			_pages.Add(_popPage); // last = on top initially (population on top)
+
+
+			_focusedInput = seed_Input;
+			seed_Input.Focus();
 		}
 
 
@@ -298,6 +342,30 @@ namespace UntilWeFall
 			seed_Input.WithValue(seedText).WithPlaceholder("Enter seed . . .");
 			worldName_Input.WithValue(worldText).WithPlaceholder("What do you name this world?");
 			tribeName_Input.WithValue(tribeText).WithPlaceholder("What do you name this people?");
+
+			int rx = _rightPanelRect.X;
+			int rw = _rightPanelRect.Width;
+
+			_traitsTabRect  = new Rectangle(rx - 24, 88, 64, 240);
+			_traitsBodyRect = new Rectangle(rx - 24, 275, rw, rw);
+
+			_popTabRect  = new Rectangle(rx + 170, 205, 330, 67);
+			_popBodyRect = new Rectangle(rx + 85, 256, rw - 100, rw);
+			
+			int y = _popTabRect.Y + 10;
+			int xPlus = _popTabRect.Right - plus_Bounds.Width - 12;
+			int xMinus = xPlus - minus_Bounds.Width - 8;
+
+			plus.Bounds  = new Rectangle(xPlus, y, plus_Bounds.Width, plus_Bounds.Height);
+			minus.Bounds = new Rectangle(xMinus, y, minus_Bounds.Width, minus_Bounds.Height);
+
+			if (_traitsPage != null) {
+				_traitsPage.TabRect = _traitsTabRect;
+			}
+
+			if (_popPage != null) {
+				_popPage.TabRect = _popTabRect;
+			}
 		}
 
 
@@ -308,6 +376,7 @@ namespace UntilWeFall
 
 		public override void Update(GameTime gameTime)
 		{
+			bool clickedPage = false;
 			var kb = Keyboard.GetState();
 			var mouse = Mouse.GetState();
 
@@ -322,11 +391,38 @@ namespace UntilWeFall
 					tribeName_Input.Bounds.Contains(mouse.Position) ? tribeName_Input :
 					null;
 
-				if (next != _focusedInput)
+				for (int i = _pages.Count - 1; i >= 0; i--)
 				{
-					_focusedInput?.Blur();
-					_focusedInput = next;
-					_focusedInput?.Focus();
+					var p = _pages[i];
+
+					// click tab
+					if (p.TabRect.Contains(mouse.Position))
+					{
+						BringToFront(p);
+						break;
+					}
+
+					// OPTIONAL: click body brings page front too
+					if (p.Id == "traits" && _traitsBodyRect.Contains(mouse.Position))
+					{
+						BringToFront(p);
+						break;
+					}
+
+					if (p.Id == "population" && _popBodyRect.Contains(mouse.Position))
+					{
+						BringToFront(p);
+						break;
+					}
+				}
+
+				if (!clickedPage) {
+					if (next != _focusedInput)
+					{
+						_focusedInput?.Blur();
+						_focusedInput = next;
+						_focusedInput?.Focus();
+					}
 				}
 			}
 
@@ -381,10 +477,23 @@ namespace UntilWeFall
 				ReflowLayout(w, h);
 			}
 
-			#region Population tab BUTTONS update
-			plus.Update(mouse);
-			minus.Update(mouse);
-			#endregion
+#region Population tab BUTTONS update
+			//plus.Update(mouse);
+			//minus.Update(mouse);
+
+			if (_pages.Count > 0)
+			{
+				var top = _pages[^1];
+				top.Update?.Invoke(mouse);
+
+				// Example: only update plus/minus if population page is on top
+				if (top.Id == "population")
+				{
+					plus.Update(mouse);
+					minus.Update(mouse);
+				}
+			}
+#endregion
 		}
 
 		private void HandleSeedCommit(KeyboardState kb)
@@ -530,9 +639,9 @@ namespace UntilWeFall
 			_mapPreview.Draw(_spriteBatch, Fonts.Get("12"), hm: _mapPreview.PreviewHeight);
 #endregion <-----MAP PREVIEW---<<<-
 			
-			Population(_spriteBatch);
-			Traits(_spriteBatch);
 			//Population(_spriteBatch);
+			//Traits(_spriteBatch);
+			DrawPages(_spriteBatch);
 
 			DrawCursor(_spriteBatch);
 
@@ -540,24 +649,33 @@ namespace UntilWeFall
 		}
 
 #region TRAITS tab
-		private void Traits(SpriteBatch sb)
+		private void Traits(SpriteBatch sb, bool isTop)
 		{
+			Color topTint = Hex.convert("#1c242a");          // active / front
+			Color backTint = Hex.convert("#2c373e"); // inactive / behind
+			var iconTint = isTop ? Color.White : (Color.White * 0.6f);
+
+
+			Color tint = isTop ? topTint : backTint;
+
 			sb.Draw(
 				Textures.Get("traits_tab"), 
-				new Rectangle(
+				/*new Rectangle(
 					(CTX.GraphicsDevice.Viewport.Width / 2) - 24, 
 					88, 
 					64, 
-					240),
-				Hex.convert("#2c373e"));
+					240),*/
+				_traitsTabRect,
+				tint);
 			sb.Draw(
 				Textures.Get("bg"), 
-				new Rectangle(
+				/*new Rectangle(
 					(CTX.GraphicsDevice.Viewport.Width / 2) - 24, 
 					275, 
 					CTX.GraphicsDevice.Viewport.Width / 2, 
-					CTX.GraphicsDevice.Viewport.Width / 2), 
-				Hex.convert("#2c373e"));
+					CTX.GraphicsDevice.Viewport.Width / 2), */
+				_traitsBodyRect,
+				tint);
 
 			sb.Draw(
 				Textures.Get("traits_tab_img1"), 
@@ -566,7 +684,7 @@ namespace UntilWeFall
 					95, 
 					40, 
 					49), 
-				Hex.convert("#ffffff"));
+				iconTint);
 
 			sb.Draw(
 				Textures.Get("traits_tab_img2"), 
@@ -575,29 +693,42 @@ namespace UntilWeFall
 					162, 
 					19, 
 					29), 
-				Hex.convert("#ffffff"));
+				iconTint);
+
+			 if (isTop)
+			{
+				plus.Draw(sb);
+				minus.Draw(sb);
+			}   
 		}
 #endregion
 
 #region POPULATION tab
-		private void Population(SpriteBatch sb)
+		private void Population(SpriteBatch sb, bool isTop)
 		{
+			Color topTint = Hex.convert("#1c242a"); 
+			Color backTint = Hex.convert("#2c373e"); 
+
+			Color tint = isTop ? topTint : backTint;
+
 			sb.Draw(
 				Textures.Get("population_tab"), 
-				new Rectangle(
+				/*new Rectangle(
 					(CTX.GraphicsDevice.Viewport.Width / 2) + 170, 
 					205, 
 					330, 
-					67),
-				Hex.convert("#111518"));
+					67),*/
+				_popTabRect,
+				tint);
 			sb.Draw(
 				Textures.Get("bg"), 
-				new Rectangle(
+				/*new Rectangle(
 					(CTX.GraphicsDevice.Viewport.Width / 2) + 85, 
 					256, 
 					(CTX.GraphicsDevice.Viewport.Width / 2) - 100, 
-					CTX.GraphicsDevice.Viewport.Width / 2), 
-				Hex.convert("#111518"));
+					CTX.GraphicsDevice.Viewport.Width / 2), */
+				_popBodyRect,
+				tint);
 
 			sb.DrawString(
 				Fonts.Get("16"),
@@ -607,8 +738,11 @@ namespace UntilWeFall
 					220),
 				Color.White);
 
-			plus.Draw(sb);
-			minus.Draw(sb);            
+			 if (isTop)
+			{
+				plus.Draw(sb);
+				minus.Draw(sb);
+			}   
 		}
 #endregion
 
