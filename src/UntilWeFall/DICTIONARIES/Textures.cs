@@ -17,7 +17,9 @@ namespace UntilWeFall
 			textures["traits_tab_img1"] = Content.Load<Texture2D>("sprites/TRAIT_tab_img1_40x49");
 			textures["traits_tab_img2"] = Content.Load<Texture2D>("sprites/TRAIT_tab_img2_19x29");
 
-			textures["population_tab"] = Content.Load<Texture2D>("sprites/tab2");  // POPULAYIONS
+			textures["census_tab"] = Content.Load<Texture2D>("sprites/tab2");  // POPULAYIONS
+
+			textures["bloodline_tab"] = Content.Load<Texture2D>("sprites/tab3"); // BLOODLINE
 		}
 
 		public static Texture2D Get (string key)

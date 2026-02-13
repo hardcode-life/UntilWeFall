@@ -134,7 +134,7 @@ public class InputField
 		{
 			// Put caret at end of current text
 			float w = Font.MeasureString(toShow).X;
-			sb.DrawString(Font, "|", pos + new Vector2(Bounds.X + w + 2, Bounds.Y + 5), finalColor);
+			sb.DrawString(Fonts.Get("16"), "|", pos + new Vector2(Bounds.X + w + 2, Bounds.Y + 5), finalColor);
 		}
 	}
 

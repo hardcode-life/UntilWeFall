@@ -78,15 +78,16 @@ namespace UntilWeFall
 			public string Id;
 			public Button TabButton;          // the little vertical icon tab
 			public Rectangle TabRect;         // optional, if you aren’t using Button bounds
-			public Action<SpriteBatch, bool> Draw;  // draw body + header
+			public Action<SpriteBatch, int> Draw;  // draw body + header
 			public Action<MouseState> Update;        // optional
 		}
 		private readonly List<CreationPage> _pages = new();
 		private int _activePageIndex = 0;
 
 		private Rectangle _traitsTabRect, _traitsBodyRect;
-		private Rectangle _popTabRect, _popBodyRect;
-		private CreationPage _traitsPage, _popPage;
+		private Rectangle _censusTabRect, _censusBodyRect;
+		private Rectangle _bloodTabRect, _bloodBodyRect;
+		private CreationPage _traitsPage, _censusPage, _bloodPage;
 
 		private void BringToFront(CreationPage page)
 		{
@@ -99,21 +100,26 @@ namespace UntilWeFall
 
 		void DrawPages(SpriteBatch sb)
 		{
-			// Draw pages bottom -> top.
-			// The last one drawn is visually on top.
-			for (int i = 0; i < _pages.Count; i++)
-			{
-				bool isTop = (i == _pages.Count - 1);
-				_pages[i].Draw(sb, isTop);
-			}
+			int count = _pages.Count;
 
+			for (int i = 0; i < count; i++)
+			{
+				int depthFromTop = (count - 1) - i;
+				_pages[i].Draw(sb, depthFromTop);
+			}
 		}
 
-#region POPULATION tab
+#region CENSUS tab
 		private Button plus;
 		private Rectangle plus_Bounds;
 		private Button minus;
 		private Rectangle minus_Bounds;
+		private int humanPopulation = 50;
+		private Vector2 humanPopulation_pos;
+		private Rectangle _popInputBounds;
+		private InputField _popInput;
+		private const int PopMin = 1;
+		private const int PopMax = 500;
 #endregion
 
 		public Creation(GameContext ctx, Action<GameStateID> changeState) : base(ctx, changeState)
@@ -168,29 +174,33 @@ namespace UntilWeFall
 				Color.White
 			);	
 
-#region Population tab BUTTONS
-			plus_Bounds = new Rectangle(
-				0 , 
-				0, 
-				(int)Fonts.Get("32").MeasureString("[+]").X, 
-				(int)Fonts.Get("32").MeasureString("[+]").Y);
-			minus_Bounds = new Rectangle(
-				0 , 
-				0, 
-				(int)Fonts.Get("32").MeasureString("[-]").X, 
-				(int)Fonts.Get("32").MeasureString("[-]").Y); 
-			
-			plus = new Button(plus_Bounds, Color.Orange)
-			{
+			plus_Bounds  = new Rectangle(0, 0,
+			(int)Fonts.Get("32").MeasureString("[+]").X,
+			(int)Fonts.Get("32").MeasureString("[+]").Y);
+
+			minus_Bounds = new Rectangle(0, 0,
+			(int)Fonts.Get("32").MeasureString("[-]").X,
+			(int)Fonts.Get("32").MeasureString("[-]").Y);
+
+			plus  = new Button(Rectangle.Empty, Color.Orange) { 
 				Text = "[+]",
-				Bounds = plus_Bounds
-			};
-			minus = new Button(minus_Bounds, Color.Orange)
-			{
+				Font = Fonts.Get("16") };
+			minus = new Button(Rectangle.Empty, Color.Orange) { 
 				Text = "[-]",
-				Bounds = minus_Bounds
-			};
-#endregion
+				Font = Fonts.Get("16") };	
+
+			#region POPULATION INPUT
+			_popInput = new InputField(
+				Rectangle.Empty,
+				"",
+				Fonts.Get("32"),
+				() => { /* CHANGE THE HECKING VALUE AAAAAHHHHHHHHH */ },
+				CTX.pixel,
+				Color.White);
+
+			_popInput.MaxLength = 3;
+			_popInput.WithValue(humanPopulation.ToString());
+			#endregion
 			
 			ReflowLayout(w, h);
 
@@ -198,28 +208,36 @@ namespace UntilWeFall
 			{
 				Id = "traits",
 				TabRect = _traitsTabRect,
-				Draw = (sb, isTop) => Traits(sb, isTop),
+				Draw = (sb, depth) => Traits(sb, depth),
 				Update = (m) => { /* top-only later */ }
 			};
 
-			_popPage = new CreationPage
+			_censusPage = new CreationPage
 			{
-				Id = "population",
-				TabRect = _popTabRect,
-				Draw = (sb, isTop) => Population(sb, isTop),
-				Update = (m) => { /* top-only later */ }
+				Id = "census",
+				TabRect = _censusTabRect,
+				Draw = (sb, depth) => Census(sb, depth),
+				Update = (m) => {  }
+			};
+
+			_bloodPage = new CreationPage
+			{
+				Id = "bloodline",
+				TabRect = _bloodTabRect,
+				Draw = (sb, depth) => Bloodline(sb, depth),
+				Update = (m) => { /*later */}
 			};
 
 			_pages.Clear();
+			_pages.Add(_bloodPage);
 			_pages.Add(_traitsPage);
-			_pages.Add(_popPage); // last = on top initially (population on top)
-
+			_pages.Add(_censusPage); // last = on top initially (census on top)
 
 			_focusedInput = seed_Input;
 			seed_Input.Focus();
 		}
 
-
+#region REFLOW LAYOUT
 		private void ReflowLayout(int w, int h)
 		{
 			string seedText = seed_Input?.Value ?? "";
@@ -237,7 +255,7 @@ namespace UntilWeFall
 				Textures.Get("mainLogo").Width / 4, 
 				Textures.Get("mainLogo").Height / 4);*/
 			logo_Bounds = new Rectangle(
-				8,
+				10,
 				(int)Fonts.Get("ex").MeasureString("UNTIL\nWE\nFALL").Y + 16,
 				Textures.Get("mainLogo").Width / 4,
 				Textures.Get("mainLogo").Height / 4);
@@ -343,31 +361,101 @@ namespace UntilWeFall
 			worldName_Input.WithValue(worldText).WithPlaceholder("What do you name this world?");
 			tribeName_Input.WithValue(tribeText).WithPlaceholder("What do you name this people?");
 
-			int rx = _rightPanelRect.X;
+			int rx = _rightPanelRect.X; // screen width / 2
 			int rw = _rightPanelRect.Width;
-
+#region PAGES RECTS
 			_traitsTabRect  = new Rectangle(rx - 24, 88, 64, 240);
 			_traitsBodyRect = new Rectangle(rx - 24, 275, rw, rw);
 
-			_popTabRect  = new Rectangle(rx + 170, 205, 330, 67);
-			_popBodyRect = new Rectangle(rx + 85, 256, rw - 100, rw);
-			
-			int y = _popTabRect.Y + 10;
-			int xPlus = _popTabRect.Right - plus_Bounds.Width - 12;
+			_censusTabRect  = new Rectangle(rx + 170, 205, 330, 67);
+			_censusBodyRect = new Rectangle(rx + 85, 256, rw - 100, rw);
+
+			_bloodTabRect  = new Rectangle(rx + 837, 160, 144, 94);
+			_bloodBodyRect = new Rectangle(rx + 630, 237, 580, 1124);
+#endregion
+			int y = _censusTabRect.Y + 10;
+			int xPlus = _censusTabRect.Right - plus_Bounds.Width - 12;
 			int xMinus = xPlus - minus_Bounds.Width - 8;
 
 			plus.Bounds  = new Rectangle(xPlus, y, plus_Bounds.Width, plus_Bounds.Height);
 			minus.Bounds = new Rectangle(xMinus, y, minus_Bounds.Width, minus_Bounds.Height);
 
-			if (_traitsPage != null) {
+			if (_traitsPage != null) 
+			{
 				_traitsPage.TabRect = _traitsTabRect;
 			}
 
-			if (_popPage != null) {
-				_popPage.TabRect = _popTabRect;
+			if (_censusPage != null) 
+			{
+				_censusPage.TabRect = _censusTabRect;
 			}
-		}
 
+			if (_bloodPage != null)
+			{
+				_bloodPage.TabRect = _bloodTabRect;
+			}
+
+#region Census tab BUTTONS
+//new Vector2((CTX.GraphicsDevice.Viewport.Width / 2) + 200, 220)
+/* reference based on position of "Human Population" text
+_censusTabRect.X + 24, 
+_censusTabRect.Y + 8),
+*/
+			int popW = (int)Fonts.Get("32").MeasureString("000").X + 16; // + padding...
+			int popH = (int)Fonts.Get("32").MeasureString("0").Y + 8;
+
+			humanPopulation_pos = new Vector2(
+				_censusTabRect.X + (
+					_censusTabRect.Width 
+					- (int)(Fonts.Get("32").MeasureString("000").X 
+						* 2f)
+				), 
+				_censusTabRect.Y + 8
+			);
+
+			_popInputBounds = new Rectangle(
+				(int)humanPopulation_pos.X - 18,
+				(int)humanPopulation_pos.Y - 6,
+				popW,
+				popH
+			);
+
+			_popInput.SetBounds(_popInputBounds);
+			if (_popInput.Value != humanPopulation.ToString()) {
+    				_popInput.WithValue(humanPopulation.ToString());
+			}
+
+			minus_Bounds = new Rectangle(
+				(int)humanPopulation_pos.X - 32,
+				(int)humanPopulation_pos.Y, 
+				(int)Fonts.Get("24").MeasureString("-").X, 
+				(int)Fonts.Get("24").MeasureString("-").Y + 4); 
+
+			minus = new Button(minus_Bounds, Color.White)
+			{
+				Font = Fonts.Get("24"),
+				Text = "-",
+				Bounds = minus_Bounds
+			};
+
+			plus_Bounds = new Rectangle(
+				(int)humanPopulation_pos.X + 64,
+				(int)humanPopulation_pos.Y, 
+				(int)Fonts.Get("24").MeasureString("+").X, 
+				(int)Fonts.Get("24").MeasureString("+").Y + 4);
+
+			plus = new Button(plus_Bounds, Color.White)
+			{
+				Font = Fonts.Get("24"),
+				Text = "+",
+				Bounds = plus_Bounds
+			};
+
+			plus.OnClick = () => AddPop(+1);
+			minus.OnClick = () => AddPop(-1);
+#endregion
+		}
+#endregion
 
 		public override void Exit()
 		{
@@ -384,12 +472,35 @@ namespace UntilWeFall
 				_mousePrev.LeftButton == ButtonState.Released;
 
 			if (click)
-			{
+			{	
+				#region  INCLUDE YOUR INPUTS HERE
 				InputField? next =
 					seed_Input.Bounds.Contains(mouse.Position) ? seed_Input :
 					worldName_Input.Bounds.Contains(mouse.Position) ? worldName_Input :
 					tribeName_Input.Bounds.Contains(mouse.Position) ? tribeName_Input :
+					_popInput.Bounds.Contains(mouse.Position) ? _popInput :
 					null;
+				#endregion
+
+				if (next != null)
+				{
+				// Make sure the right page is on top if needed
+				if (next == _popInput) {
+					BringToFront(_censusPage);
+				}
+
+				if (next != _focusedInput) {
+					if (_focusedInput == _popInput)
+					CommitPopulationFromInput(live: false);
+
+					_focusedInput?.Blur();
+					_focusedInput = next;
+					_focusedInput?.Focus();
+				}
+
+				_mousePrev = mouse;
+				return; // <- THIS is the magic: don't let page-body logic steal the click
+				}
 
 				for (int i = _pages.Count - 1; i >= 0; i--)
 				{
@@ -399,6 +510,7 @@ namespace UntilWeFall
 					if (p.TabRect.Contains(mouse.Position))
 					{
 						BringToFront(p);
+						clickedPage = true;
 						break;
 					}
 
@@ -406,12 +518,18 @@ namespace UntilWeFall
 					if (p.Id == "traits" && _traitsBodyRect.Contains(mouse.Position))
 					{
 						BringToFront(p);
+						if (next == null) {
+							clickedPage = true;
+						}
 						break;
 					}
 
-					if (p.Id == "population" && _popBodyRect.Contains(mouse.Position))
+					if (p.Id == "census" && _censusBodyRect.Contains(mouse.Position))
 					{
 						BringToFront(p);
+						if (next == null) {
+							clickedPage = true;
+						}
 						break;
 					}
 				}
@@ -419,6 +537,9 @@ namespace UntilWeFall
 				if (!clickedPage) {
 					if (next != _focusedInput)
 					{
+						if (_focusedInput == _popInput) {
+							CommitPopulationFromInput(live: false);
+						}
 						_focusedInput?.Blur();
 						_focusedInput = next;
 						_focusedInput?.Focus();
@@ -477,7 +598,7 @@ namespace UntilWeFall
 				ReflowLayout(w, h);
 			}
 
-#region Population tab BUTTONS update
+#region tab BUTTONS update
 			//plus.Update(mouse);
 			//minus.Update(mouse);
 
@@ -486,13 +607,14 @@ namespace UntilWeFall
 				var top = _pages[^1];
 				top.Update?.Invoke(mouse);
 
-				// Example: only update plus/minus if population page is on top
-				if (top.Id == "population")
+				// Example: only update plus/minus if census page is on top
+				if (top.Id == "census")
 				{
 					plus.Update(mouse);
 					minus.Update(mouse);
 				}
 			}
+			_popInput.Update(mouse);
 #endregion
 		}
 
@@ -578,6 +700,11 @@ namespace UntilWeFall
 					// TODO: move world gen to loading state + Task.Run
 				}
 			}
+
+			if (_focusedInput == _popInput && kb.IsKeyDown(Keys.Enter) && !_kbPrev.IsKeyDown(Keys.Enter))
+			{
+				CommitPopulationFromInput(live: false);
+			}
 			_kbPrev = kb;
 #endregion <----Commit Seed------<<<-
 
@@ -602,7 +729,7 @@ namespace UntilWeFall
 			_spriteBatch.DrawString(
 				Fonts.Get("ex"),
 				"UNTIL\n    WE\nFALL",
-				new Vector2(8, 8),
+				new Vector2(12, 8),
 				Color.Orange
 			);
 
@@ -639,24 +766,38 @@ namespace UntilWeFall
 			_mapPreview.Draw(_spriteBatch, Fonts.Get("12"), hm: _mapPreview.PreviewHeight);
 #endregion <-----MAP PREVIEW---<<<-
 			
-			//Population(_spriteBatch);
+			//Census(_spriteBatch);
 			//Traits(_spriteBatch);
 			DrawPages(_spriteBatch);
+			//Bloodline(_spriteBatch, true);
 
 			DrawCursor(_spriteBatch);
+
+			#region DEBUG
+			//_spriteBatch.DrawString(Fonts.Get("32"),"+", new Vector2(plus.Bounds.X, plus.Bounds.Y), Color.Red * 0.3f);
+			//_spriteBatch.Draw(CTX.pixel, minus.Bounds, Color.Lime * 0.3f);
+			#endregion
+
 
 			_spriteBatch.End();
 		}
 
 #region TRAITS tab
-		private void Traits(SpriteBatch sb, bool isTop)
+		private void Traits(SpriteBatch sb, int depthFromTop)
 		{
-			Color topTint = Hex.convert("#1c242a");          // active / front
-			Color backTint = Hex.convert("#2c373e"); // inactive / behind
-			var iconTint = isTop ? Color.White : (Color.White * 0.6f);
+			Color topTint = Hex.convert("#1c242a");          // font
+			Color midTint = Hex.convert("#3e4951"); // mid
+			Color backTint = Hex.convert("#2c373e"); // back
 
+			Color iconTint =
+				depthFromTop == 0 ? Color.White :
+				depthFromTop == 1 ? Color.White * 0.8f :
+				Color.White * 0.6f;
 
-			Color tint = isTop ? topTint : backTint;
+			Color tint =
+				depthFromTop == 0 ? topTint :
+				depthFromTop == 1 ? midTint :
+				backTint;
 
 			sb.Draw(
 				Textures.Get("traits_tab"), 
@@ -667,6 +808,15 @@ namespace UntilWeFall
 					240),*/
 				_traitsTabRect,
 				tint);
+
+			
+			if (depthFromTop == 0)
+			{
+				var shadow = _traitsBodyRect;
+				shadow.X += 4;
+				shadow.Y += 4;
+				sb.Draw(Textures.Get("bg"), shadow, Color.Black * 0.15f);
+			}
 			sb.Draw(
 				Textures.Get("bg"), 
 				/*new Rectangle(
@@ -695,31 +845,43 @@ namespace UntilWeFall
 					29), 
 				iconTint);
 
-			 if (isTop)
+			/*if (depthFromTop == 0)
 			{
 				plus.Draw(sb);
 				minus.Draw(sb);
-			}   
+			}   */
 		}
 #endregion
 
-#region POPULATION tab
-		private void Population(SpriteBatch sb, bool isTop)
+#region CENSUS tab
+		private void Census(SpriteBatch sb, int depthFromTop)
 		{
 			Color topTint = Hex.convert("#1c242a"); 
+			Color midTint = Hex.convert("#3e4951");
 			Color backTint = Hex.convert("#2c373e"); 
 
-			Color tint = isTop ? topTint : backTint;
+			Color tint =
+				depthFromTop == 0 ? topTint :
+				depthFromTop == 1 ? midTint :
+				backTint;
 
 			sb.Draw(
-				Textures.Get("population_tab"), 
+				Textures.Get("census_tab"), 
 				/*new Rectangle(
 					(CTX.GraphicsDevice.Viewport.Width / 2) + 170, 
 					205, 
 					330, 
 					67),*/
-				_popTabRect,
+				_censusTabRect,
 				tint);
+
+			if (depthFromTop == 0)
+			{
+				var shadow = _censusBodyRect;
+				shadow.X += 4;
+				shadow.Y += 4;
+				sb.Draw(Textures.Get("bg"), shadow, Color.Black * 0.15f);
+			}
 			sb.Draw(
 				Textures.Get("bg"), 
 				/*new Rectangle(
@@ -727,22 +889,85 @@ namespace UntilWeFall
 					256, 
 					(CTX.GraphicsDevice.Viewport.Width / 2) - 100, 
 					CTX.GraphicsDevice.Viewport.Width / 2), */
-				_popBodyRect,
+				_censusBodyRect,
 				tint);
 
 			sb.DrawString(
 				Fonts.Get("16"),
 				"Human Population",
 				new Vector2(
-					(CTX.GraphicsDevice.Viewport.Width / 2) + 200, 
-					220),
+					_censusTabRect.X + 32, 
+					_censusTabRect.Y + 8),
 				Color.White);
 
-			 if (isTop)
+			/*sb.DrawString(
+				Fonts.Get("32"),
+				humanPopulation.ToString(),
+				humanPopulation_pos,
+				Color.White);*/
+			_popInput.Draw(sb);
+
+			if (depthFromTop == 0)
 			{
-				plus.Draw(sb);
+				_popInput.Draw(sb);
+
+				Rectangle minus_rec = new Rectangle(
+					minus.Bounds.X - 2,
+					minus.Bounds.Y,
+					minus.Bounds.Width +2,
+					minus.Bounds.Height);
+				sb.Draw(CTX.pixel, minus_rec, Color.Black * 0.25f);
 				minus.Draw(sb);
+
+				Rectangle plus_rec = new Rectangle(
+					plus.Bounds.X - 2,
+					plus.Bounds.Y,
+					plus.Bounds.Width +2,
+					plus.Bounds.Height);
+				sb.Draw(CTX.pixel, plus_rec, Color.Black * 0.25f);
+				plus.Draw(sb);
 			}   
+		}
+
+		void AddPop(int delta)
+		{
+			humanPopulation = Math.Clamp(humanPopulation + delta, PopMin, PopMax);
+			_popInput.WithValue(humanPopulation.ToString());
+		}
+#endregion
+
+#region  BLOODLINE tab
+		private void Bloodline(SpriteBatch sb, int depthFromTop)
+		{
+			Color topTint = Hex.convert("#1c242a"); 
+			Color midTint = Hex.convert("#3e4951");
+			Color backTint = Hex.convert("#2c373e"); 
+
+			Color tint =
+				depthFromTop == 0 ? topTint :
+				depthFromTop == 1 ? midTint :
+				backTint;
+
+			sb.Draw(Textures.Get("bloodline_tab"), 
+				_bloodTabRect,
+				tint);
+
+			if (depthFromTop == 0)
+			{
+				var shadow = _bloodBodyRect;
+				shadow.X += 4;
+				shadow.Y += 4;
+				sb.Draw(Textures.Get("bg"), shadow, Color.Black * 0.15f);
+			}
+			sb.Draw(Textures.Get("bg"), 
+				_bloodBodyRect,
+				tint);
+
+			//connection				
+			sb.Draw(Textures.Get("bg"), 
+				//new Rectangle(_rightPanelRect.X + 837, 160, 32, 4),
+				new Rectangle(_bloodTabRect.X, _bloodTabRect.Y + 64, 32, 4),
+				Color.White);
 		}
 #endregion
 
@@ -796,9 +1021,46 @@ namespace UntilWeFall
 				return;
 			}
 
+			// make sure population input is DIGITS ONLY
+			if (_focusedInput == _popInput)
+			{
+				if (!char.IsDigit(c)) { 
+					return; 
+				}
+
+				_focusedInput.Append(c);
+				CommitPopulationFromInput(live: true);
+				return; // important: don't fall through to the general rule
+			}
+
+
 			if (char.IsLetterOrDigit(c) || c == ' ' || c == '-' || c == '_') {
 				_focusedInput.Append(c);
 			}
+		}
+
+		private void CommitPopulationFromInput(bool live = false)
+		{
+			if (_popInput == null) { return; }
+
+			if(string.IsNullOrWhiteSpace(_popInput.Value))
+			{
+				if (!live)
+				{
+					humanPopulation = PopMin;
+					_popInput.WithValue(humanPopulation.ToString());
+				}
+				return;
+			}
+
+			if (!int.TryParse(_popInput.Value, out int v)) {
+				v = humanPopulation;
+			}
+
+			v = Math.Clamp(v, PopMin, PopMax);
+			humanPopulation = v;
+
+			_popInput.WithValue(humanPopulation.ToString());
 		}
 	}
 }
