@@ -448,10 +448,10 @@ private int carabaoMale = 2, carabaoFemale = 8;
 			_traitsBodyRect = new Rectangle(rx - 24, 275, rw, rw);
 
 			_censusTabRect  = new Rectangle(rx + 170, 205, 330, 67);
-			_censusBodyRect = new Rectangle(rx + 85, 256, rw - 100, rw);
+			_censusBodyRect = new Rectangle(rx + 85, 256, 415,1160); // rw-100
 
 			_bloodTabRect  = new Rectangle(rx + 837, 160, 144, 94);
-			_bloodBodyRect = new Rectangle(rx + 630, 237, 580, 1124);
+			_bloodBodyRect = new Rectangle(rx +60, 237, 1000, 1124);
 #endregion
 			int y = _censusTabRect.Y + 10;
 			int xPlus = _censusTabRect.Right - plus_Bounds.Width - 12;
@@ -551,7 +551,7 @@ _censusTabRect.Y + 8),
 				var c = _animalCounters[i];
 
 				c.maleBounds = new Rectangle(
-					_censusBodyRect.X + 240,
+					_censusBodyRect.X + 30,
 					startY + (rowH * i),
 					(int)(Fonts.Get("16").MeasureString("99").X * 1.5f),
 					24
@@ -1060,8 +1060,8 @@ _censusTabRect.Y + 8),
 				plus.Draw(sb);
 			}  
 
-			sb.Draw(Textures.Get("male"), new Rectangle(_censusBodyRect.X + 240, _censusBodyRect.Y + 32, 24, 24), Color.White);
-			sb.Draw(Textures.Get("female"), new Rectangle(_censusBodyRect.X + 320, _censusBodyRect.Y + 32, 24, 24), Color.White);
+			sb.Draw(Textures.Get("male"), new Rectangle(_censusBodyRect.X + 30, _censusBodyRect.Y + 32, 24, 24), Color.White);
+			sb.Draw(Textures.Get("female"), new Rectangle(_censusBodyRect.X + 110, _censusBodyRect.Y + 32, 24, 24), Color.White);
 
 			/*sb.DrawString(Fonts.Get("16"), "Horse", new Vector2(_censusBodyRect.X + 12, _censusBodyRect.Y + 80), Color.White);*/
 			#region ANIMALS

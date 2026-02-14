@@ -153,10 +153,17 @@ namespace UntilWeFall
 			);
 
 			// Value box in the middle
-			_namePos = new Vector2(
+			/*_namePos = new Vector2(
 				maleBounds.X - ((int)Font.MeasureString(Name).X + 32),
 				maleBounds.Y + 2
+			);*/
+			int namePadding = 24; // distance from female right arrow
+
+			_namePos = new Vector2(
+				fem_rightRect.Right + namePadding,
+				maleBounds.Y + 2
 			);
+
 
 			male_btnLeft.Bounds = male_leftRect;
 			male_btnRight.Bounds = male_rightRect;
