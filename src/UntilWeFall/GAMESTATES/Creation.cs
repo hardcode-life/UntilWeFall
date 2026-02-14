@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
@@ -125,8 +126,14 @@ namespace UntilWeFall
 // =============================================================================
 // ---------ANIMALS CROSSING AHEAD -----------------ANIMALS CROSSING AHEAD ------------------
 // =============================================================================
-private CensusCounter _horseCounter;
+// Creation.cs (fields)
+private readonly List<CensusCounter> _animalCounters = new();
+private readonly List<int> _animalTaxIDs = new(); // same index as _animalCounters
+
+
+private CensusCounter _horse, _carabao;
 private int horseMale = 12, horseFemale = 5;
+private int carabaoMale = 2, carabaoFemale = 8;
 
 		public Creation(GameContext ctx, Action<GameStateID> changeState) : base(ctx, changeState)
 		{
@@ -208,8 +215,43 @@ private int horseMale = 12, horseFemale = 5;
 			_popInput.WithValue(humanPopulation.ToString());
 			#endregion
 
-			#region ANIMALS
-			_horseCounter = new CensusCounter
+#region ANIMALS
+			_animalCounters.Clear();
+			_animalTaxIDs.Clear();
+			foreach (var kv in CTX.AnimalRegistry.Animals.OrderBy(k => k.Value.TaxID))
+			{
+				int taxID = kv.Key;
+				var def = kv.Value;
+
+				var counter = new CensusCounter
+				{
+					Min = 0,
+					Max = 99,
+					Step = 1,
+					Font = Fonts.Get("16"),
+					Pixel = CTX.pixel,
+					ArrowLeftTex = Textures.Get("arrow LEFT"),
+					ArrowRightTex = Textures.Get("arrow RIGHT"),
+					TextColor = Color.White,
+				};
+
+				counter.Initialize(def.AdultMale, def.AdultFemale, def.Name);
+
+				counter.OnValueChanged_male += vM =>
+				{
+					def.AdultMale = vM;
+				};
+
+				counter.OnValueChanged_female += vF =>
+				{
+					def.AdultFemale = vF;
+				};
+
+				_animalCounters.Add(counter);
+				_animalTaxIDs.Add(taxID);
+			}
+
+			/*_horse = new CensusCounter
 			{
 				Min = 0,
 				Max = 99,
@@ -220,10 +262,25 @@ private int horseMale = 12, horseFemale = 5;
 				ArrowRightTex = Textures.Get("arrow RIGHT"),
 				TextColor = Color.White,
 			};
-			_horseCounter.Initialize(horseMale, horseFemale, "NORDIC WILD HORSE");
-			_horseCounter.OnValueChanged_male += vM => horseMale = vM;
-			_horseCounter.OnValueChanged_female += vF => horseFemale = vF;
-			#endregion
+			_horse.Initialize(horseMale, horseFemale, "NORDIC WILD HORSE");
+			_horse.OnValueChanged_male += vM => horseMale = vM;
+			_horse.OnValueChanged_female += vF => horseFemale = vF;
+
+			_carabao = new CensusCounter
+			{
+				Min = 0,
+				Max = 99,
+				Step = 1,
+				Font = Fonts.Get("16"),
+				Pixel = CTX.pixel,
+				ArrowLeftTex = Textures.Get("arrow LEFT"),
+				ArrowRightTex = Textures.Get("arrow RIGHT"),
+				TextColor = Color.White,
+			};
+			_carabao.Initialize(carabaoMale, carabaoFemale, "CARABAO");
+			_carabao.OnValueChanged_male += vM => carabaoMale = vM;
+			_carabao.OnValueChanged_female += vF => carabaoFemale = vF;*/
+#endregion
 			
 			ReflowLayout(w, h);
 
@@ -485,12 +542,38 @@ _censusTabRect.Y + 8),
 			sb.DrawString(Fonts.Get("16"), "Horse", new Vector2(_censusBodyRect.X + 12, _censusBodyRect.Y + 80), Color.White);*/
 			/*sb.Draw(Textures.Get("male"), new Rectangle(_censusBodyRect.X + 240, _censusBodyRect.Y + 32, 24, 24), Color.White);
 			sb.Draw(Textures.Get("female"), new Rectangle(_censusBodyRect.X + 360, _censusBodyRect.Y + 32, 24, 24), Color.White);*/
-			_horseCounter.maleBounds = new Rectangle(
+
+			int startY = _censusBodyRect.Y + 80;
+			int rowH = (int)(Fonts.Get("16").LineSpacing * 1.6f);
+
+			for (int i = 0; i < _animalCounters.Count; i++)
+			{
+				var c = _animalCounters[i];
+
+				c.maleBounds = new Rectangle(
+					_censusBodyRect.X + 240,
+					startY + (rowH * i),
+					(int)(Fonts.Get("16").MeasureString("99").X * 1.5f),
+					24
+				);
+
+				c.Reflow();
+			}
+
+			/*int row = (int)(Fonts.Get("16").MeasureString("99").Y * 1.5f);
+			_horse.maleBounds = new Rectangle(
 				_censusBodyRect.X + 240,
-				_censusBodyRect.Y + 80,
+				_censusBodyRect.Y + 80, // _censusBodyRect.Y + 80 + (row * index)
 				(int)(Fonts.Get("16").MeasureString("99").X * 1.5f),
 				24);
-			_horseCounter.Reflow();
+			_horse.Reflow();
+
+			_carabao.maleBounds  = new Rectangle(
+				_censusBodyRect.X + 240,
+				_censusBodyRect.Y + 80 + row,
+				(int)(Fonts.Get("16").MeasureString("99").X * 1.5f),
+				24);
+			_carabao.Reflow();*/
 #endregion
 		}
 #endregion
@@ -584,12 +667,18 @@ _censusTabRect.Y + 8),
 					}
 				}
 			}
-
+			#region ANIMALS
 			if (_pages.Count > 0 && _pages[^1].Id == "census")
 			{
-				_horseCounter.Update(Mouse.GetState());
+				/*_horse.Update(Mouse.GetState());
+				_carabao.Update(Mouse.GetState());*/
+				var ms = Mouse.GetState();
+				for (int i = 0; i < _animalCounters.Count; i++)
+				{
+					_animalCounters[i].Update(ms);
+				}
 			}
-
+			#endregion
 			_mousePrev = mouse;
 
 			_viewMatrix = _camera.GetViewMatrix();
@@ -972,10 +1061,17 @@ _censusTabRect.Y + 8),
 			}  
 
 			sb.Draw(Textures.Get("male"), new Rectangle(_censusBodyRect.X + 240, _censusBodyRect.Y + 32, 24, 24), Color.White);
-			sb.Draw(Textures.Get("female"), new Rectangle(_censusBodyRect.X + 360, _censusBodyRect.Y + 32, 24, 24), Color.White);
+			sb.Draw(Textures.Get("female"), new Rectangle(_censusBodyRect.X + 320, _censusBodyRect.Y + 32, 24, 24), Color.White);
 
 			/*sb.DrawString(Fonts.Get("16"), "Horse", new Vector2(_censusBodyRect.X + 12, _censusBodyRect.Y + 80), Color.White);*/
-			_horseCounter.Draw(sb);
+			#region ANIMALS
+			/*_horse.Draw(sb);
+			_carabao.Draw(sb);*/
+			for (int i =0; i < _animalCounters.Count; i++)
+			{
+				_animalCounters[i].Draw(sb);
+			}
+			#endregion
 		}
 
 		void Counter(SpriteBatch sb, Vector2 pos, int width, int height)

@@ -115,7 +115,7 @@ namespace UntilWeFall
 		public void Reflow()
 		{
 			femBounds = new Rectangle(
-				maleBounds.X + 120,
+				maleBounds.X + 80, // 80 = distance between male and female icons
 				maleBounds.Y,
 				maleBounds.Width,
 				maleBounds.Height);
@@ -190,14 +190,15 @@ namespace UntilWeFall
 				return;
 			}
 
-			Color bg =
-				!Enabled ? BgDisabled :
-				male_hovered ? BgHover :
-				BgNormal;
-
-			// Background behind the value (optional: whole Bounds)
-			sb.Draw(Pixel, maleBounds, bg);
-			sb.Draw(Pixel, femBounds, bg);
+			Color bgM = 
+				!Enabled ? BgDisabled 
+				: (male_hovered ? BgHover : BgNormal);
+			Color bgF = 
+				!Enabled ? BgDisabled 
+				: (fem_hovered  ? BgHover : BgNormal);
+			
+			sb.Draw(Pixel, maleBounds, bgM);
+			sb.Draw(Pixel, femBounds, bgF);
 
 			// Value text (centered)
 			string sM = _maleValue.ToString();

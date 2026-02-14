@@ -5,6 +5,7 @@ using Microsoft.Xna.Framework.Input;
 using System.Runtime.InteropServices;
 using System;
 using System.Collections.Generic;
+using System.IO;
 
 namespace UntilWeFall
 {
@@ -78,6 +79,12 @@ namespace UntilWeFall
 			mainLogo = Textures.Get("mainLogo");
 			testBackground =Content.Load<Texture2D>("sprites/2560x1440 test");
 			inputBG = Content.Load<Texture2D>("sprites/stoneBlock");
+
+			var path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "DATA", "AnimalRegistry.txt");
+			if (!File.Exists(path)) {
+    				throw new FileNotFoundException($"Animal registry not found. Expected at: {path}");
+			}
+			_ctx.SetAnimalRegistry(AnimalRegistryLoader.LoadFromFile(path));
 
 			ChangeState(GameStateID.Creation);
 		}
