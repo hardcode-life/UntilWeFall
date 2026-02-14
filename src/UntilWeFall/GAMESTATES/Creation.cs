@@ -122,6 +122,12 @@ namespace UntilWeFall
 		private const int PopMax = 500;
 #endregion
 
+// =============================================================================
+// ---------ANIMALS CROSSING AHEAD -----------------ANIMALS CROSSING AHEAD ------------------
+// =============================================================================
+private CensusCounter _horseCounter;
+private int horseMale = 12, horseFemale = 5;
+
 		public Creation(GameContext ctx, Action<GameStateID> changeState) : base(ctx, changeState)
 		{
 			/* spiders ahead
@@ -200,6 +206,23 @@ namespace UntilWeFall
 
 			_popInput.MaxLength = 3;
 			_popInput.WithValue(humanPopulation.ToString());
+			#endregion
+
+			#region ANIMALS
+			_horseCounter = new CensusCounter
+			{
+				Min = 0,
+				Max = 99,
+				Step = 1,
+				Font = Fonts.Get("16"),
+				Pixel = CTX.pixel,
+				ArrowLeftTex = Textures.Get("arrow LEFT"),
+				ArrowRightTex = Textures.Get("arrow RIGHT"),
+				TextColor = Color.White,
+			};
+			_horseCounter.Initialize(horseMale, horseFemale, "NORDIC WILD HORSE");
+			_horseCounter.OnValueChanged_male += vM => horseMale = vM;
+			_horseCounter.OnValueChanged_female += vF => horseFemale = vF;
 			#endregion
 			
 			ReflowLayout(w, h);
@@ -414,7 +437,7 @@ _censusTabRect.Y + 8),
 			);
 
 			_popInputBounds = new Rectangle(
-				(int)humanPopulation_pos.X - 18,
+				(int)humanPopulation_pos.X - 14,
 				(int)humanPopulation_pos.Y - 6,
 				popW,
 				popH
@@ -454,6 +477,21 @@ _censusTabRect.Y + 8),
 			plus.OnClick = () => AddPop(+1);
 			minus.OnClick = () => AddPop(-1);
 #endregion
+
+#region ANIMALS
+			/*Counter(sb, new Vector2(_censusBodyRect.X + 240, _censusBodyRect.Y + 80), 8, 24);
+			Counter(sb, new Vector2(_censusBodyRect.X + 366, _censusBodyRect.Y + 80), 8, 24);
+
+			sb.DrawString(Fonts.Get("16"), "Horse", new Vector2(_censusBodyRect.X + 12, _censusBodyRect.Y + 80), Color.White);*/
+			/*sb.Draw(Textures.Get("male"), new Rectangle(_censusBodyRect.X + 240, _censusBodyRect.Y + 32, 24, 24), Color.White);
+			sb.Draw(Textures.Get("female"), new Rectangle(_censusBodyRect.X + 360, _censusBodyRect.Y + 32, 24, 24), Color.White);*/
+			_horseCounter.maleBounds = new Rectangle(
+				_censusBodyRect.X + 240,
+				_censusBodyRect.Y + 80,
+				(int)(Fonts.Get("16").MeasureString("99").X * 1.5f),
+				24);
+			_horseCounter.Reflow();
+#endregion
 		}
 #endregion
 
@@ -484,22 +522,22 @@ _censusTabRect.Y + 8),
 
 				if (next != null)
 				{
-				// Make sure the right page is on top if needed
-				if (next == _popInput) {
-					BringToFront(_censusPage);
-				}
+					// Make sure the right page is on top if needed
+					if (next == _popInput) {
+						BringToFront(_censusPage);
+					}
 
-				if (next != _focusedInput) {
-					if (_focusedInput == _popInput)
-					CommitPopulationFromInput(live: false);
+					if (next != _focusedInput) {
+						if (_focusedInput == _popInput)
+						CommitPopulationFromInput(live: false);
 
-					_focusedInput?.Blur();
-					_focusedInput = next;
-					_focusedInput?.Focus();
-				}
+						_focusedInput?.Blur();
+						_focusedInput = next;
+						_focusedInput?.Focus();
+					}
 
-				_mousePrev = mouse;
-				return; // <- THIS is the magic: don't let page-body logic steal the click
+					_mousePrev = mouse;
+					//return;
 				}
 
 				for (int i = _pages.Count - 1; i >= 0; i--)
@@ -545,6 +583,11 @@ _censusTabRect.Y + 8),
 						_focusedInput?.Focus();
 					}
 				}
+			}
+
+			if (_pages.Count > 0 && _pages[^1].Id == "census")
+			{
+				_horseCounter.Update(Mouse.GetState());
 			}
 
 			_mousePrev = mouse;
@@ -926,7 +969,20 @@ _censusTabRect.Y + 8),
 					plus.Bounds.Height);
 				sb.Draw(CTX.pixel, plus_rec, Color.Black * 0.25f);
 				plus.Draw(sb);
-			}   
+			}  
+
+			sb.Draw(Textures.Get("male"), new Rectangle(_censusBodyRect.X + 240, _censusBodyRect.Y + 32, 24, 24), Color.White);
+			sb.Draw(Textures.Get("female"), new Rectangle(_censusBodyRect.X + 360, _censusBodyRect.Y + 32, 24, 24), Color.White);
+
+			/*sb.DrawString(Fonts.Get("16"), "Horse", new Vector2(_censusBodyRect.X + 12, _censusBodyRect.Y + 80), Color.White);*/
+			_horseCounter.Draw(sb);
+		}
+
+		void Counter(SpriteBatch sb, Vector2 pos, int width, int height)
+		{
+			sb.Draw(Textures.Get("arrow LEFT"), new Rectangle((int)pos.X - 20, (int)pos.Y, width, height), Color.White);
+			sb.DrawString(Fonts.Get("16"), "12", pos, Color.White);
+			sb.Draw(Textures.Get("arrow RIGHT"), new Rectangle((int)pos.X + 28, (int)pos.Y, width, height), Color.White);
 		}
 
 		void AddPop(int delta)

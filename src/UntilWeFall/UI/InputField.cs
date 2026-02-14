@@ -95,14 +95,17 @@ public class InputField
 
 	public void Draw(SpriteBatch sb)
 	{
-		Color tint =
-			!Enabled ? Color.DarkGray :
-			IsFocused ? Color.White :
-			_hovered ? Color.Gray :
-			Color.White;
+		Color bgIdle    = Hex.convert("#2c373e"); // lighter (deselected)
+		Color bgHover   = Hex.convert("#26323a"); // slightly darker than idle
+		Color bgFocused = Hex.convert("#1c242a"); // darkest (selected)
 
 #region INPUT BACKGROUND COLOR
-		Color inputBG = Hex.convert("#1c242a");
+		//Color inputBG = Hex.convert("#1c242a");
+		Color inputBG =
+			!Enabled ? Hex.convert("#20272c") :
+			IsFocused ? bgFocused :
+			_hovered ? bgHover :
+			bgIdle;
 		if (Background != null) {
 			sb.Draw(Background, Bounds, inputBG);
 		}
@@ -122,7 +125,7 @@ public class InputField
 
 		if (Font != null)
 		{
-			Vector2 textPos = new Vector2(Bounds.X,Bounds.Y);
+			Vector2 textPos = new Vector2(Bounds.X - 5,Bounds.Y);
 			sb.DrawString(
 				Font, 
 				toShow, 
@@ -134,7 +137,7 @@ public class InputField
 		{
 			// Put caret at end of current text
 			float w = Font.MeasureString(toShow).X;
-			sb.DrawString(Fonts.Get("16"), "|", pos + new Vector2(Bounds.X + w + 2, Bounds.Y + 5), finalColor);
+			sb.DrawString(Fonts.Get("16"), "|", pos + new Vector2(Bounds.X + w + 2, Bounds.Y + 5), finalColor * 0.25f);
 		}
 	}
 
