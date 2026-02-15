@@ -80,11 +80,32 @@ namespace UntilWeFall
 			testBackground =Content.Load<Texture2D>("sprites/2560x1440 test");
 			inputBG = Content.Load<Texture2D>("sprites/stoneBlock");
 
-			var path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "DATA", "AnimalRegistry.txt");
-			if (!File.Exists(path)) {
-    				throw new FileNotFoundException($"Animal registry not found. Expected at: {path}");
+			Directory.CreateDirectory(_ctx.SaveDirectory);
+
+			// Load registry (JSON-first, migrate TXT if needed, else create default)
+			AnimalRegistry registry;
+			if (File.Exists(_ctx.AnimalRegistryJsonPath))
+			{
+				var file = AnimalRegistryJsonIO.LoadFile(_ctx.AnimalRegistryJsonPath);
+				file = AnimalRegistrySanitizer.Sanitize(file);
+
+				AnimalRegistryJsonIO.SaveFileAtomic(_ctx.AnimalRegistryJsonPath, file);
+
+				registry = AnimalRegistryLoader.Loader(file);
 			}
-			_ctx.SetAnimalRegistry(AnimalRegistryLoader.LoadFromFile(path));
+			else
+			{
+				// First-run: make a starter file (or you can make it empty)
+				var starter = new AnimalRegistryFile();
+				starter.Animals.Add(new AnimalEntry { TaxID = 9760, Name = "Nordic Wild Horse", AdultFemale = 2, AdultMale = 1 });
+				starter.Animals.Add(new AnimalEntry { TaxID = 9902, Name = "Carabao", AdultFemale = 2, AdultMale = 1 });
+
+				AnimalRegistryJsonIO.SaveFileAtomic(_ctx.AnimalRegistryJsonPath, starter);
+				registry = AnimalRegistryLoader.Loader(starter);
+			}
+
+			_ctx.SetAnimalRegistry(registry);
+
 
 			ChangeState(GameStateID.Creation);
 		}

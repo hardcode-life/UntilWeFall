@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
-using System.IO; // <-- add this
+using System.IO;
+using System.Linq; // <-- add this
 
 namespace UntilWeFall
 {
@@ -36,7 +37,7 @@ namespace UntilWeFall
 		public int JuvenileFemale { get; set; }
 		public int JuvenileMale { get; set; }
 
-		public string Name { get; init; } = "";
+		public string Name { get; set; } = "";
 	}
 
 	public sealed class SpeciesDef
@@ -73,6 +74,60 @@ namespace UntilWeFall
 			_animals.TryGetValue(taxId, out var def);
 			return def;
 		}
+
+		public static AnimalRegistryFile BuildFileFromRuntime(AnimalRegistry runtime)
+		{
+			var file = new AnimalRegistryFile();
+
+			foreach (var kv in runtime.Animals.OrderBy(k => k.Key))
+			{
+				var def = kv.Value;
+				file.Animals.Add(new AnimalEntry
+				{
+					TaxID = def.TaxID,
+					Name = def.Name,
+					AdultFemale = def.AdultFemale,
+					AdultMale = def.AdultMale,
+					JuvenileFemale = def.JuvenileFemale,
+					JuvenileMale = def.JuvenileMale
+				});
+			}
+
+			return file;
+		}
+
+
+		public bool TryGetByTaxId(int taxId, out AnimalDefinition def)
+    			=> _animals.TryGetValue(taxId, out def!);
+
+
+		public static void ApplyFileToRuntime(AnimalRegistry runtime, AnimalRegistryFile file)
+		{
+			foreach (var entry in file.Animals)
+			{
+				if (runtime.TryGetByTaxId(entry.TaxID, out var def))
+				{
+					def.AdultFemale = entry.AdultFemale;
+					def.AdultMale = entry.AdultMale;
+					def.JuvenileFemale = entry.JuvenileFemale;
+					def.JuvenileMale = entry.JuvenileMale;
+				}
+				else
+				{
+					runtime.Add(new AnimalDefinition {
+						TaxID = entry.TaxID,
+						Name = entry.Name,
+						AdultFemale = entry.AdultFemale,
+						AdultMale = entry.AdultMale,
+						JuvenileFemale = entry.JuvenileFemale,
+						JuvenileMale = entry.JuvenileMale
+					});
+				}
+			}
+		}
+
+
+
 
 		// Optional: UI / debug hooks.
 		public event Action<SpeciesID, Sex, int>? OnValueChanged;
@@ -128,44 +183,25 @@ namespace UntilWeFall
 
 	public static class AnimalRegistryLoader
 	{
-		public static AnimalRegistry LoadFromFile(string path)
+		public static AnimalRegistry Loader(AnimalRegistryFile file)
 		{
-			var registry = new AnimalRegistry();
+			var r = new AnimalRegistry();
 
-			foreach (var line in File.ReadLines(path))
+			foreach (var entry in file.Animals)
 			{
-				if (string.IsNullOrWhiteSpace(line))
-				continue;
-
-				if (line.StartsWith("#"))
-				continue;
-
-				var parts = line.Split('|');
-
-				if (parts.Length < 6)
-				continue; // or throw if you want strict mode
-
-				int taxId = int.Parse(parts[0]);
-				int adultF = int.Parse(parts[1]);
-				int adultM = int.Parse(parts[2]);
-				int juvF = int.Parse(parts[3]);
-				int juvM = int.Parse(parts[4]);
-				string name = parts[5];
-
-				var def = new AnimalDefinition
+				r.Add(new AnimalDefinition
 				{
-				TaxID = taxId,
-				AdultFemale = adultF,
-				AdultMale = adultM,
-				JuvenileFemale = juvF,
-				JuvenileMale = juvM,
-				Name = name
-				};
-
-				registry.Add(def);
+					TaxID = entry.TaxID,
+					Name = entry.Name,
+					AdultFemale = entry.AdultFemale,
+					AdultMale = entry.AdultMale,
+					JuvenileFemale = entry.JuvenileFemale,
+					JuvenileMale = entry.JuvenileMale
+				});
 			}
 
-			return registry;
+			return r;
 		}
+
 	}
 }

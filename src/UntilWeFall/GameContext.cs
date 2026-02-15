@@ -3,6 +3,7 @@ using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework;
 using UntilWeFall;
 using System;
+using System.IO;
 
 
 public sealed class GameContext
@@ -22,6 +23,10 @@ public sealed class GameContext
 
 	public WorldData worldData { get; set; }
 
+	public string SaveDirectory { get; }
+	public string AnimalRegistryJsonPath { get; }
+	public string AnimalRegistryTxtPath { get; }
+
 	public AnimalRegistry AnimalRegistry { get; private set; } = new AnimalRegistry();
 
 	public void SetAnimalRegistry(AnimalRegistry registry)
@@ -36,5 +41,14 @@ public sealed class GameContext
 
 		pixel = new Texture2D(GraphicsDevice, 1, 1);
 		pixel.SetData(new[] { Color.White });
+
+		SaveDirectory = Path.Combine(
+			Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+			"UntilWeFall"
+		);
+		Directory.CreateDirectory(SaveDirectory);
+
+		AnimalRegistryJsonPath = Path.Combine(SaveDirectory, "AnimalRegistry.json");
+		AnimalRegistryTxtPath  = Path.Combine(SaveDirectory, "AnimalRegistry.txt");
 	}
 }

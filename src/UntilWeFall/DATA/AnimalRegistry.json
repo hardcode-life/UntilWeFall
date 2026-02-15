@@ -1,0 +1,8 @@
+{
+	"Version": 1,
+	"Animals": {
+		"9938": { "TaxID": 9938, "Name": "Mouflon", "AdultFemale": 24, "AdultMale": 8, "JuvenileFemale":5, "JuvenileMale": 2 },
+		"9796": { "TaxID": 9796, "Name": "Horses", "AdultFemale": 3 , "AdultMale": 7, "JuvenileFemale":2, "JuvenileMale": 2 },
+		"9925": { "TaxID": 9925, "Name": "Goats", "AdultFemale": 10 , "AdultMale": 2, "JuvenileFemale":3, "JuvenileMale": 4 }
+	}
+}

@@ -57,6 +57,8 @@ namespace UntilWeFall
 			_preview.SetPreview(Vector2.Zero, w, h, cellW: 12, cellH: 12);
 			_preview.Regenerate(CTX.EarthSeed, CTX.SkySeed, CTX.WorldWidth, CTX.WorldHeight);
 
+			
+
 			_task = Task.Run(() =>
 			{
 				try

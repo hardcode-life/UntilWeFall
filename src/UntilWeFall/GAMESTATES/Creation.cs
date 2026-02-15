@@ -443,16 +443,18 @@ private int carabaoMale = 2, carabaoFemale = 8;
 
 			int rx = _rightPanelRect.X; // screen width / 2
 			int rw = _rightPanelRect.Width;
-#region PAGES RECTS
-			_traitsTabRect  = new Rectangle(rx - 24, 88, 64, 240);
-			_traitsBodyRect = new Rectangle(rx - 24, 275, rw, rw);
 
-			_censusTabRect  = new Rectangle(rx + 170, 205, 330, 67);
-			_censusBodyRect = new Rectangle(rx + 85, 256, 415,1160); // rw-100
+			#region PAGES RECTS
+				_traitsTabRect  = new Rectangle(rx - 24, 88, 64, 240);
+				_traitsBodyRect = new Rectangle(rx - 24, 275, rw, rw);
 
-			_bloodTabRect  = new Rectangle(rx + 837, 160, 144, 94);
-			_bloodBodyRect = new Rectangle(rx +60, 237, 1000, 1124);
-#endregion
+				_censusTabRect  = new Rectangle(rx + 170, 205, 330, 67);
+				_censusBodyRect = new Rectangle(rx + 85, 256, 415,1160); // rw-100
+
+				_bloodTabRect  = new Rectangle(rx + 837, 160, 144, 94);
+				_bloodBodyRect = new Rectangle(rx +60, 237, 1000, 1124);
+			#endregion
+
 			int y = _censusTabRect.Y + 10;
 			int xPlus = _censusTabRect.Right - plus_Bounds.Width - 12;
 			int xMinus = xPlus - minus_Bounds.Width - 8;
@@ -1072,6 +1074,8 @@ _censusTabRect.Y + 8),
 				_animalCounters[i].Draw(sb);
 			}
 			#endregion
+
+			sb.Draw(Textures.Get("commit_to_AnimalRegistry"), new Rectangle(_censusBodyRect.X, _censusBodyRect.Height+200, 415, 55), Color.White);
 		}
 
 		void Counter(SpriteBatch sb, Vector2 pos, int width, int height)
