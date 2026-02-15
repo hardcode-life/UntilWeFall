@@ -387,14 +387,14 @@ private int carabaoMale = 2, carabaoFemale = 8;
 
 			worldName_Input_bounds = new Rectangle(
 				_rightPanelRect.X + 32,
-				112,
+				90,
 				450,
 				32
 			);
 			
 			tribeName_Input_bounds = new Rectangle(
 				_rightPanelRect.X + 32,
-				160,
+				140,
 				450,
 				32
 			);
@@ -445,14 +445,14 @@ private int carabaoMale = 2, carabaoFemale = 8;
 			int rw = _rightPanelRect.Width;
 
 			#region PAGES RECTS
-				_traitsTabRect  = new Rectangle(rx - 24, 88, 64, 240);
-				_traitsBodyRect = new Rectangle(rx - 24, 275, rw, rw);
+				_traitsTabRect  = new Rectangle(rx - 24, 68, 64, 240);
+				_traitsBodyRect = new Rectangle(rx - 24, 255, rw, rw);
 
-				_censusTabRect  = new Rectangle(rx + 170, 205, 330, 67);
-				_censusBodyRect = new Rectangle(rx + 85, 256, 415,1160); // rw-100
+				_censusTabRect  = new Rectangle(rx + 170, 185, 330, 67);
+				_censusBodyRect = new Rectangle(rx + 85, 236, 415,1160); // rw-100
 
-				_bloodTabRect  = new Rectangle(rx + 837, 160, 144, 94);
-				_bloodBodyRect = new Rectangle(rx +60, 237, 1000, 1124);
+				_bloodTabRect  = new Rectangle(rx + 837, 148, 144, 94);
+				_bloodBodyRect = new Rectangle(rx +60, 225, 1000, 1100);
 			#endregion
 
 			int y = _censusTabRect.Y + 10;
@@ -483,8 +483,8 @@ private int carabaoMale = 2, carabaoFemale = 8;
 _censusTabRect.X + 24, 
 _censusTabRect.Y + 8),
 */
-			int popW = (int)Fonts.Get("32").MeasureString("000").X + 16; // + padding...
-			int popH = (int)Fonts.Get("32").MeasureString("0").Y + 8;
+			int popW = (int)Fonts.Get("24").MeasureString("000").X + 16; // + padding...
+			int popH = (int)Fonts.Get("24").MeasureString("0").Y + 8;
 
 			humanPopulation_pos = new Vector2(
 				_censusTabRect.X + (
@@ -496,8 +496,8 @@ _censusTabRect.Y + 8),
 			);
 
 			_popInputBounds = new Rectangle(
-				(int)humanPopulation_pos.X - 14,
-				(int)humanPopulation_pos.Y - 6,
+				(int)humanPopulation_pos.X -8,
+				(int)humanPopulation_pos.Y - 8,
 				popW,
 				popH
 			);
@@ -508,10 +508,10 @@ _censusTabRect.Y + 8),
 			}
 
 			minus_Bounds = new Rectangle(
-				(int)humanPopulation_pos.X - 32,
-				(int)humanPopulation_pos.Y, 
-				(int)Fonts.Get("24").MeasureString("-").X, 
-				(int)Fonts.Get("24").MeasureString("-").Y + 4); 
+				(int)humanPopulation_pos.X - 26,
+				(int)humanPopulation_pos.Y - 8, 
+				(int)Fonts.Get("24").MeasureString("+").X, 
+				(int)Fonts.Get("24").MeasureString("+").Y + 9); 
 
 			minus = new Button(minus_Bounds, Color.White)
 			{
@@ -521,10 +521,10 @@ _censusTabRect.Y + 8),
 			};
 
 			plus_Bounds = new Rectangle(
-				(int)humanPopulation_pos.X + 64,
-				(int)humanPopulation_pos.Y, 
+				(int)humanPopulation_pos.X + 52,
+				(int)humanPopulation_pos.Y - 8, 
 				(int)Fonts.Get("24").MeasureString("+").X, 
-				(int)Fonts.Get("24").MeasureString("+").Y + 4);
+				(int)Fonts.Get("24").MeasureString("+").Y + 9);
 
 			plus = new Button(plus_Bounds, Color.White)
 			{
@@ -545,7 +545,7 @@ _censusTabRect.Y + 8),
 			/*sb.Draw(Textures.Get("male"), new Rectangle(_censusBodyRect.X + 240, _censusBodyRect.Y + 32, 24, 24), Color.White);
 			sb.Draw(Textures.Get("female"), new Rectangle(_censusBodyRect.X + 360, _censusBodyRect.Y + 32, 24, 24), Color.White);*/
 
-			int startY = _censusBodyRect.Y + 80;
+			int startY = _censusBodyRect.Y + 100;
 			int rowH = (int)(Fonts.Get("16").LineSpacing * 1.6f);
 
 			for (int i = 0; i < _animalCounters.Count; i++)
@@ -965,7 +965,7 @@ _censusTabRect.Y + 8),
 				Textures.Get("traits_tab_img1"), 
 				new Rectangle(
 					(CTX.GraphicsDevice.Viewport.Width / 2) - 22, 
-					95, 
+					75, 
 					40, 
 					49), 
 				iconTint);
@@ -974,7 +974,7 @@ _censusTabRect.Y + 8),
 				Textures.Get("traits_tab_img2"), 
 				new Rectangle(
 					(CTX.GraphicsDevice.Viewport.Width / 2) - 11, 
-					162, 
+					142, 
 					19, 
 					29), 
 				iconTint);
@@ -1062,8 +1062,8 @@ _censusTabRect.Y + 8),
 				plus.Draw(sb);
 			}  
 
-			sb.Draw(Textures.Get("male"), new Rectangle(_censusBodyRect.X + 30, _censusBodyRect.Y + 32, 24, 24), Color.White);
-			sb.Draw(Textures.Get("female"), new Rectangle(_censusBodyRect.X + 110, _censusBodyRect.Y + 32, 24, 24), Color.White);
+			sb.Draw(Textures.Get("male"), new Rectangle(_censusBodyRect.X + 30, _censusBodyRect.Y + 64, 24, 24), Color.White);
+			sb.Draw(Textures.Get("female"), new Rectangle(_censusBodyRect.X + 110, _censusBodyRect.Y + 64, 24, 24), Color.White);
 
 			/*sb.DrawString(Fonts.Get("16"), "Horse", new Vector2(_censusBodyRect.X + 12, _censusBodyRect.Y + 80), Color.White);*/
 			#region ANIMALS
@@ -1074,6 +1074,31 @@ _censusTabRect.Y + 8),
 				_animalCounters[i].Draw(sb);
 			}
 			#endregion
+
+			// HIDE WHEN NOT FOCUSED!
+			sb.DrawString(
+				Fonts.Get("24"),
+				"5",
+				new Vector2(
+					_censusBodyRect.X + 12, 
+					_censusBodyRect.Y + 10),
+				Color.White);
+			sb.DrawString(
+				Fonts.Get("16"),
+				"/100",
+				new Vector2(
+					_censusBodyRect.X + 30, 
+					_censusBodyRect.Y + 12),
+				Color.White * .5f);
+			// HIDE WHEN NOT FOCUSED!
+
+			SafeDrawString(sb,
+				Fonts.Get("16"),
+				"↓↓↓↓↓↓↓↓↓↓↓save census to registry↓↓↓↓↓↓↓↓↓↓ ",
+				new Vector2(
+					_censusBodyRect.X, 
+					_censusBodyRect.Height+170),
+				Color.Orange * .5f);
 
 			sb.Draw(Textures.Get("commit_to_AnimalRegistry"), new Rectangle(_censusBodyRect.X, _censusBodyRect.Height+200, 415, 55), Color.White);
 		}
@@ -1218,5 +1243,44 @@ _censusTabRect.Y + 8),
 
 			_popInput.WithValue(humanPopulation.ToString());
 		}
+
+		private static void SafeDrawString(SpriteBatch sb, SpriteFont font, string text, Vector2 pos, Color color)
+		{
+			try
+			{
+				sb.DrawString(font, text, pos, color);
+			}
+			catch (ArgumentException)
+			{
+				// Find the first character that the font can't render
+				for (int i = 0; i < text.Length; i++)
+				{
+					char c = text[i];
+					if (!font.Characters.Contains(c))
+					{
+						System.Diagnostics.Debug.WriteLine(
+							$"Missing glyph: '{c}' (U+{(int)c:X4}) in text: {text}"
+						);
+						break;
+					}
+				}
+
+				// Fallback: draw a sanitized version so the game doesn't crash
+				sb.DrawString(font, SanitizeForFont(font, text), pos, color);
+			}
+		}
+
+		private static string SanitizeForFont(SpriteFont font, string s)
+		{
+			var chars = font.Characters;
+			var arr = s.ToCharArray();
+			for (int i = 0; i < arr.Length; i++)
+			{
+				if (!chars.Contains(arr[i]))
+					arr[i] = '?'; // or ' ' if you prefer silent removal
+			}
+			return new string(arr);
+		}
+
 	}
 }
