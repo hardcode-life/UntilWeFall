@@ -14,3 +14,6 @@ obj/
 # OS junk
 Thumbs.db
 .DS_Store
+src/UntilWeFall/Content/font/custom-uf.ttf
+src/UntilWeFall/Content/font/custom.ttf
+src/UntilWeFall/Content/font/RuneScape-UFF.ttf
